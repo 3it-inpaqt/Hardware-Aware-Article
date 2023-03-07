@@ -1,6 +1,7 @@
 # Hardware-Aware-Article-Repository
 
-![figure1](https://user-images.githubusercontent.com/83427055/223422268-b5da2add-82a4-49b9-9543-36a394f7d07e.png)
+![figure1_no_background](https://user-images.githubusercontent.com/83427055/223422836-7b786cd5-9100-4251-b6e0-791cbe28cd66.png)
+
 
 Authors: Philippe Drolet and Victor Yon
 Using a modified version of the Pytorch library [1]
