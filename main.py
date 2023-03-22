@@ -6,8 +6,8 @@ from dataset.moon_dataset import generate_moon
 from networks.feed_forward import FeedForward
 from networks.hardaware_feed_forward import Hardaware_FeedForward
 from plots.misc import plot_fn
-from test_Standard import test_Standard
-from train_Standard import train_Standard
+from test_standard import test_standard
+from train_standard import train_standard
 from utils.logger import logger
 from utils.settings import settings
 
@@ -31,17 +31,17 @@ def main():
     settings.bayesian_complexity_cost_weight = 1 / (trainset.__len__())
     logger.info("Selected network: " + name_network_dict[settings.choice])
     if settings.choice == 1:
-        NN = network_dict[settings.choice](2, 1, elbo=settings.elbo)
+        nn = network_dict[settings.choice](2, 1, elbo=settings.elbo)
     else:
-        NN = network_dict[settings.choice](2, 1)
-    train_Standard(NN, trainset, testset, "cpu")
-    acc = test_Standard(NN, testset, "cpu")
+        nn = network_dict[settings.choice](2, 1)
+    train_standard(nn, trainset, testset, "cpu")
+    acc = test_standard(nn, testset, "cpu")
     if settings.save_network:
-        torch.save(NN, settings.pretrained_address)
+        torch.save(nn, settings.pretrained_address)
     return
 
 
-def Compare_networks():
+def compare_networks():
     """
     Method used to insert the weights of the regular Neural Network into the Hardware-Aware framework.
     Returns
@@ -58,8 +58,8 @@ def Compare_networks():
         hann.fc1.bias = nn.fc1.bias
         hann.fc2.weight = nn.fc2.weight
         hann.fc2.bias = nn.fc2.bias
-    acc = test_Standard(hann, testset, "cpu")
-    acc = test_Standard(hann_cpy, testset, "cpu")
+    acc = test_standard(hann, testset, "cpu")
+    acc = test_standard(hann_cpy, testset, "cpu")
 
 
 if __name__ == '__main__':

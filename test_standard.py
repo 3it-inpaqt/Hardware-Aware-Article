@@ -8,7 +8,7 @@ from utils.settings import settings
 from utils.timer import SectionTimer
 
 
-def test_Standard(network: Module, test_dataset: Dataset, device: torch.device, test_name: str = '',
+def test_standard(network: Module, test_dataset: Dataset, device: torch.device, test_name: str = '',
                   final: bool = False,
                   limit: int = 0) -> float:
     """

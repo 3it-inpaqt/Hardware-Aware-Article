@@ -152,7 +152,7 @@ def finalize_plot(shape=(1, 1)):
     legend = functools.partial(plt.legend, fontsize=10)
 
 
-def plot_weight_disribution(network):
+def plot_weight_distribution(network):
     """
     Util function used to plot the distribution of the weights in the network
     Parameters

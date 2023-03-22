@@ -6,13 +6,13 @@ from torch.nn import Module
 from torch.utils.data import DataLoader, Dataset
 
 from plots.misc import plot_train_progress
-from test_Standard import test_Standard
+from test_standard import test_standard
 from utils.logger import logger
 from utils.settings import settings
 from utils.timer import SectionTimer
 
 
-def train_Standard(network: Module, train_dataset: Dataset, test_dataset: Dataset, device: torch.device) -> None:
+def train_standard(network: Module, train_dataset: Dataset, test_dataset: Dataset, device: torch.device) -> None:
     """
     Train the network using the dataset.
 
@@ -91,10 +91,10 @@ def _checkpoint(network: Module, batch_num: int, train_dataset: Dataset, test_da
     # Save the current network
 
     # Start tests
-    test_accuracy = test_Standard(network, test_dataset, test_name='checkpoint test',
+    test_accuracy = test_standard(network, test_dataset, test_name='checkpoint test',
                                   limit=settings.checkpoint_test_size,
                                   device=device)
-    train_accuracy = test_Standard(network, train_dataset, test_name='checkpoint train',
+    train_accuracy = test_standard(network, train_dataset, test_name='checkpoint train',
                                    limit=settings.checkpoint_train_size,
                                    device=device)
     # Set it back to train because it was switched during tests

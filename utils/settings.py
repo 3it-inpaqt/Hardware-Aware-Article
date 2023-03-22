@@ -37,7 +37,7 @@ class Settings:
     # The minimal logging level to show in the console (see https://docs.python.org/3/library/logging.html#levels).
     logger_console_level: Union[str, int] = 'INFO'
 
-    # If True use a visual progress bar in the console during training and loading.
+    # If True, use a visual progress bar in the console during training and loading.
     # Should be use with a logger_console_level as INFO or more for better output.
     visual_progress_bar: bool = True
 
@@ -48,7 +48,7 @@ class Settings:
     save_images: bool = True
 
     # If True and the run have a valid name, save the neural network parameters in the run directory at the end of the
-    # training. Saved before applying early stopping if enable.
+    # training. Saved before applying early stopping if enabled.
     # The file will be at the root of run directory, under then name: "final_network.pt"
     save_network: bool = False
     # ==================================================================================================================
@@ -77,7 +77,7 @@ class Settings:
     # The percentage of data kept for testing only
     validation_ratio: float = 0.1
     weight_clipping_scaler: float = 4.5
-    # If True, data augmentation methods will be apply to increase the size of the train dataset.
+    # If True, data augmentation methods will be applied to increase the size of the train dataset.
     train_data_augmentation: bool = False  # currently unused
 
     generate_new_moon = False
@@ -87,13 +87,13 @@ class Settings:
     load_pretrained: bool = False
     overwrite_pretrained: bool = False
     overwrite_pretrained_bayesian: bool = True
-    pretrained_address_dict = {1: (os.getcwd() + "\\trained_networks\\HAFF_" + str(timestamp).replace(".", "") + ".pt"),
-                               2: (os.getcwd() + "\\trained_networks\\FF_" + str(timestamp).replace(".", "") + ".pt"),
-                               3: (os.getcwd() + "\\trained_networks\\BFF_" + str(timestamp).replace(".", "") + ".pt")}
+    pretrained_address_dict = {1: (os.getcwd() + "/trained_networks/HAFF_" + str(timestamp).replace(".", "") + ".pt"),
+                               2: (os.getcwd() + "/trained_networks/FF_" + str(timestamp).replace(".", "") + ".pt"),
+                               3: (os.getcwd() + "/trained_networks/BFF_" + str(timestamp).replace(".", "") + ".pt")}
     pretrained_address = pretrained_address_dict[choice]
-    train_moon_dataset_location = os.getcwd() + "\\dataset\\train_moon_dataset.txt"
-    test_moon_dataset_location = os.getcwd() + "\\dataset\\test_moon_dataset.txt"
-    validation_moon_dataset_location = os.getcwd() + "\\dataset\\validation_moon_dataset.txt"
+    train_moon_dataset_location = os.getcwd() + "/dataset/train_moon_dataset.txt"
+    test_moon_dataset_location = os.getcwd() + "/dataset/test_moon_dataset.txt"
+    validation_moon_dataset_location = os.getcwd() + "/dataset/validation_moon_dataset.txt"
     # The number of data loader workers, to take advantage of multithreading. Always disable with CUDA.
     # 0 means automatic setting (using cpu count).
     nb_loader_workers: int = 0
@@ -206,7 +206,6 @@ class Settings:
         assert all((a > 0 for a in self.hidden_layers_size)), 'Hidden layer size should be more than 0'
 
         # Training
-        # TODO should also accept "cuda:1" format
         assert self.device in ('auto', 'cpu', 'cuda'), f'Not valid torch device name: {self.device}'
         assert self.batch_size > 0, 'Batch size should be a positive integer'
         assert self.nb_epoch > 0, 'Number of epoch should be at least 1'
