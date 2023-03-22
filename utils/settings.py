@@ -1,6 +1,5 @@
 import argparse
 import os
-import re
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Sequence, Union
@@ -28,8 +27,8 @@ class Settings:
     # ==================================================================================================================
     # The seed to use for all random number generator during this run.
     seed: int = 42
-    run_name = ""
     logger_file_level = "INFO"
+
     # ==================================================================================================================
     # ============================================== Logging and Outputs ===============================================
     # ==================================================================================================================
@@ -116,9 +115,6 @@ class Settings:
     # ==================================================================================================================
     # ==================================================== Training ====================================================
     # ==================================================================================================================
-    # The pytorch device to use for training and testing. Can be 'cpu', 'cuda' or 'auto'.
-    # The automatic setting will use CUDA is a compatible hardware is detected.
-    device: str = 'cpu'  # currently unused
 
     # Prior distribution ratios for bayes by backprop
     prior_sigma1: float = 5
@@ -165,31 +161,10 @@ class Settings:
     # If True and the run have a valid name, save the neural network parameters in the run directory at each checkpoint.
     checkpoint_save_network: bool = False
 
-    def is_named_run(self) -> bool:
-        """ Return True only if the name of the run is set (could be a temporary name). """
-        return len(self.run_name) > 0
-
-    def is_unnamed_run(self) -> bool:
-        """ Return True only if the name of the run is NOT set. """
-        return len(self.run_name) == 0
-
-    def is_temporary_run(self) -> bool:
-        """ Return True only if the name of the run is set and is temporary name. """
-        return self.run_name == 'tmp'
-
-    def is_saved_run(self) -> bool:
-        """ Return True only if the name of the run is set and is NOT temporary name. """
-        return self.is_named_run() and not self.is_temporary_run()
-
     def validate(self):
         """
         Validate settings.
         """
-
-        # General
-        assert self.run_name is None or not re.search('[/:"*?<>|\\\\]+', self.run_name), \
-            'Invalid character in run name (should be a valid directory name)'
-
         # Logging and Outputs
         possible_log_levels = ('CRITICAL', 'FATAL', 'ERROR', 'WARN', 'WARNING', 'INFO', 'DEBUG', 'NOTSET')
         assert self.logger_console_level.upper() in possible_log_levels or isinstance(self.logger_console_level, int), \
@@ -206,7 +181,6 @@ class Settings:
         assert all((a > 0 for a in self.hidden_layers_size)), 'Hidden layer size should be more than 0'
 
         # Training
-        assert self.device in ('auto', 'cpu', 'cuda'), f'Not valid torch device name: {self.device}'
         assert self.batch_size > 0, 'Batch size should be a positive integer'
         assert self.nb_epoch > 0, 'Number of epoch should be at least 1'
         assert self.bayesian_nb_sample > 0, 'The number of bayesian sample should be at least 1'

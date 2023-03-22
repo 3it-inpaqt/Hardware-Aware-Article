@@ -1,4 +1,5 @@
 import functools
+from pathlib import Path
 from typing import List
 
 import matplotlib as mpl
@@ -223,7 +224,9 @@ def plot_uncertainty_predicted_value(all_inputs, network):
     cbar = plt.colorbar(contour, ax=ax)
     _ = ax.set(xlim=(0, l), ylim=(0, l), xlabel="X", ylabel="Y")
     cbar.ax.set_ylabel("Standard deviation on simulated transfers")
-    plt.savefig(r"C:\Users\Phili\PycharmProjects\HardawareNN\plots\saved_plots" + '\\uncertainty_solution.png',
-                format='png', dpi=400, bbox_inches='tight')
+
+    out_dir = Path('out/saved_plots')
+    out_dir.mkdir(exist_ok=True, parents=True)
+    plt.savefig(Path(out_dir, 'uncertainty_solution.png'), format='png', dpi=400, bbox_inches='tight')
     plt.show()
     return

@@ -86,10 +86,12 @@ class Linear(nn.Module):
         self.b = b_prog  # f(g) = a*g + b variability with respect to conductive level (b component)
         self.max_mask_w = 0
         self.substitution = []
-        delta_dicts = open("delta_dicts.pkl", "rb")  # dictionary of recorded drifts
-        sigma_delta_dicts = open("sigma_delta_dicts.pkl",
-                                 "rb")  # dictionary of recorded standard deviations on drifts sub-databases
-        mu_delta_dicts = open("mu_delta_dicts.pkl", "rb")  # dictionary of recorded means on drifts sub-databases
+        # dictionary of recorded drifts
+        delta_dicts = open("drift_dicts/delta_dicts.pkl", "rb")
+        # dictionary of recorded standard deviations on drifts sub-databases
+        sigma_delta_dicts = open("drift_dicts/sigma_delta_dicts.pkl", "rb")
+        # dictionary of recorded means on drifts sub-databases
+        mu_delta_dicts = open("drift_dicts/mu_delta_dicts.pkl", "rb")
         self.delta_dicts = pickle.load(delta_dicts)
         self.delta_sigma_dicts = pickle.load(sigma_delta_dicts)
         self.delta_mu_dicts = pickle.load(mu_delta_dicts)
@@ -504,7 +506,7 @@ class Linear(nn.Module):
 
     def sample_adj_effect_offsets(self):
         """
-        Code to sample new random detuning effects to to neighbours programming from the database.
+        Code to sample new random detuning effects to neighbours programming from the database.
         """
         x = 0
         y = 0
@@ -528,8 +530,8 @@ class Linear(nn.Module):
             else:
                 self.adj_off_w_p[0][x] = random.choice(self.delta_dicts[str(i)]) * 1e6
                 self.adj_off_w_n[0][x] = random.choice(self.delta_dicts[str(i)]) * 1e6
-                if abs(self.adj_off_w_p[y][x]) > 4 * self.delta_sigma_dicts[
-                    str(i)] * 1e6:  # since probability of getting more than 4 * std is less thank 0.0001
+                # since probability of getting more than 4 * std is less thank 0.0001
+                if abs(self.adj_off_w_p[y][x]) > 4 * self.delta_sigma_dicts[str(i)] * 1e6:
                     self.adj_off_w_p[0][x] = 60
                 if abs(self.adj_off_w_n[y][x]) > 4 * self.delta_sigma_dicts[str(i)] * 1e6:
                     self.adj_off_w_n[0][x] = 60
