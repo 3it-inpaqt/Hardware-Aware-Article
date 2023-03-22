@@ -48,7 +48,7 @@ def train_Standard(network: Module, train_dataset: Dataset, test_dataset: Datase
                 # Run a training set for these data
                 loss = network.training_step(inputs, labels)
                 loss_evolution.append(float(loss))
-                if(type(network) == None): #Hardaware_FeedForward): #TODO: VERIFY IF WE GET HERE
+                if type(network) is None:  # Hardaware_FeedForward): #TODO: VERIFY IF WE GET HERE
                     with torch.no_grad():
                         all_weights = []
                         for param in network.parameters():
@@ -56,14 +56,15 @@ def train_Standard(network: Module, train_dataset: Dataset, test_dataset: Datase
                         all_weights = np.array(all_weights)
                         mean = np.mean(all_weights)
                         std = np.std(all_weights)
-                        upper_bound = mean +  settings.weight_clipping_scaler * std
+                        upper_bound = mean + settings.weight_clipping_scaler * std
                         lower_bound = mean - settings.weight_clipping_scaler * std
                         for param in network.parameters():
                             param.clamp_(lower_bound, upper_bound)
 
             # Epoch statistics
             _record_epoch_stats(epochs_stats, loss_evolution[-len(train_loader):])
-        plot_train_progress(loss_evolution,accuracy_evolution)
+        plot_train_progress(loss_evolution, accuracy_evolution)
+
 
 def flatten_list(_2d_list):
     flat_list = []
@@ -74,6 +75,7 @@ def flatten_list(_2d_list):
         else:
             flat_list.append(element)
     return flat_list
+
 
 def _checkpoint(network: Module, batch_num: int, train_dataset: Dataset, test_dataset: Dataset, device) -> dict:
     """
@@ -89,10 +91,12 @@ def _checkpoint(network: Module, batch_num: int, train_dataset: Dataset, test_da
     # Save the current network
 
     # Start tests
-    test_accuracy = test_Standard(network, test_dataset, test_name='checkpoint test', limit=settings.checkpoint_test_size,
-                         device=device)
-    train_accuracy = test_Standard(network, train_dataset, test_name='checkpoint train', limit=settings.checkpoint_train_size,
-                          device=device)
+    test_accuracy = test_Standard(network, test_dataset, test_name='checkpoint test',
+                                  limit=settings.checkpoint_test_size,
+                                  device=device)
+    train_accuracy = test_Standard(network, train_dataset, test_name='checkpoint train',
+                                   limit=settings.checkpoint_train_size,
+                                   device=device)
     # Set it back to train because it was switched during tests
     network.train()
 

@@ -15,6 +15,7 @@ class Hardaware_FeedForward(nn.Module):
     Simple classifier neural network.
     Should be use as an example.
     """
+
     def __init__(self, input_size: int, nb_classes: int, elbo: bool):
         """
         Create a new network with 2 hidden layers fully connected.
@@ -23,29 +24,31 @@ class Hardaware_FeedForward(nn.Module):
         :param nb_classes: Number of class to classify
         """
         super().__init__()
-        self.bayesian_nb_sample = settings.bayesian_nb_sample #number of samples for the training if the bayesian averaging the loss approach is taken
+        self.bayesian_nb_sample = settings.bayesian_nb_sample  # number of samples for the training if the bayesian averaging the loss approach is taken
         self.fc1 = Linear(input_size, settings.hidden_layers_size[0])  # Input -> Hidden 1
         self.dropout = nn.Dropout(settings.dropout)
         if nb_classes == 1:
-            self.fc2 = Linear(settings.hidden_layers_size[0],1)  # Hidden 2 -> Output
+            self.fc2 = Linear(settings.hidden_layers_size[0], 1)  # Hidden 2 -> Output
         else:
-            self.fc2 = Linear(settings.hidden_layers_size[0], nb_classes,bias = False)  # Hidden 2 -> Output
-        self.p_layers = [self.fc1.mask_w,self.fc1.mask_b,self.fc2.mask_w,self.fc2.mask_b]
+            self.fc2 = Linear(settings.hidden_layers_size[0], nb_classes, bias=False)  # Hidden 2 -> Output
+        self.p_layers = [self.fc1.mask_w, self.fc1.mask_b, self.fc2.mask_w, self.fc2.mask_b]
+
         def weights_init(m):
             if isinstance(m, Linear):
                 torch.nn.init.xavier_uniform_(m.weight)
                 m.bias.data.fill_(0.01)
-        self.elbo = elbo # Boolean to determine if Elbo will be used or not
+
+        self.elbo = elbo  # Boolean to determine if Elbo will be used or not
         self.fc1.apply(weights_init)
         self.fc2.apply(weights_init)
-        self.layers = [self.fc1,self.fc2]
+        self.layers = [self.fc1, self.fc2]
         if elbo:
-            self._criterion = nn.BCEWithLogitsLoss(reduction='mean') #reduction is sum since kld is computed in sum
+            self._criterion = nn.BCEWithLogitsLoss(reduction='mean')  # reduction is sum since kld is computed in sum
         else:
             self._criterion = nn.BCEWithLogitsLoss(reduction='mean')
-        self._optimizer = optim.Adam(self.parameters(), lr=settings.learning_rate,weight_decay = 0.0001)
+        self._optimizer = optim.Adam(self.parameters(), lr=settings.learning_rate, weight_decay=0.0001)
 
-    def forward(self, x: Any,training = False) -> Any:
+    def forward(self, x: Any, training=False) -> Any:
         """
         Define the forward logic.
 
@@ -58,7 +61,7 @@ class Hardaware_FeedForward(nn.Module):
         x = self.fc2(x)
         return x
 
-    def infer(self, inputs, nb_samples:int =10):
+    def infer(self, inputs, nb_samples: int = 10):
         """
         Use network inference for classification a set of input.
         :param inputs: The inputs to classify.
@@ -76,7 +79,7 @@ class Hardaware_FeedForward(nn.Module):
         all_equal = []
         for i in range(len(inputs)):
             with torch.no_grad():
-                outputs_array = np.array(torch.round(outputs[:,i,0]))
+                outputs_array = np.array(torch.round(outputs[:, i, 0]))
                 all_equal.append(np.all(outputs_array == outputs_array[0]))
         means = outputs.mean(axis=0)
         stds = outputs.std(axis=0)
@@ -99,38 +102,38 @@ class Hardaware_FeedForward(nn.Module):
         losses = []
         loss = 0
         for i in range(self.bayesian_nb_sample):
-            outputs = self(inputs,True)
+            outputs = self(inputs, True)
             self.p_layers = [self.fc1.mask_w, self.fc1.mask_b, self.fc2.mask_w, self.fc2.mask_b]
             try:
                 loss = self._criterion(outputs.squeeze(), labels)
             except:
                 continue
-            kld = 0 #Kullback Leibler Divergence term
-            if(self.elbo):
+            kld = 0  # Kullback Leibler Divergence term
+            if self.elbo:
                 for layer in self.layers:
                     kld += layer.kld
                 elbo = loss + settings.bayesian_complexity_cost_weight * kld
                 loss = elbo
             # Zero the parameter gradients
             losses.append(loss)
-        if(settings.bayesian_nb_sample > 1):
-            for i in range(len(losses)-1):
+        if settings.bayesian_nb_sample > 1:
+            for i in range(len(losses) - 1):
                 loss += losses[i]
-            loss = loss/settings.bayesian_nb_sample
+            loss = loss / settings.bayesian_nb_sample
         self._optimizer.zero_grad()
-        if(loss > 0):
+        if loss > 0:
             loss.backward()
         no_grad_values = []
         for layer in self.layers:
-            no_grad_values.append([layer.weight[layer.mask_w_weight],layer.bias[layer.mask_w_bias]])
+            no_grad_values.append([layer.weight[layer.mask_w_weight], layer.bias[layer.mask_w_bias]])
         self._optimizer.step()
-        #==== necessary to undo the gradient changes on substituted values ====
-        i=0
+        # ==== necessary to undo the gradient changes on substituted values ====
+        i = 0
         with torch.no_grad():
             for layer in self.layers:
                 layer.weight[layer.mask_w_weight] = no_grad_values[i][0].detach()
                 layer.bias[layer.mask_w_bias] = no_grad_values[i][1].detach()
-                i+=1
+                i += 1
         return loss
 
     def get_hook(self, bit_map):
@@ -139,7 +142,9 @@ class Hardaware_FeedForward(nn.Module):
             # Assumes 1D but can be generalized
             grad[bit_map] = 0
             return grad
+
         return hook
+
     @staticmethod
     def get_transforms():
         """

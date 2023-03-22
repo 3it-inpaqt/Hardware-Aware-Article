@@ -55,7 +55,7 @@ class Settings:
     # ==================================================== Dataset =====================================================
     # ==================================================================================================================
 
-    #All neural network parameters:
+    # All neural network parameters:
     choice: int = 1
     # The number of training epoch.
     nb_epoch: int = 10000
@@ -78,7 +78,7 @@ class Settings:
     validation_ratio: float = 0.1
     weight_clipping_scaler: float = 4.5
     # If True, data augmentation methods will be apply to increase the size of the train dataset.
-    train_data_augmentation: bool = False #currently unused
+    train_data_augmentation: bool = False  # currently unused
 
     generate_new_moon = False
     inference_number_contour = 100
@@ -87,7 +87,9 @@ class Settings:
     load_pretrained: bool = False
     overwrite_pretrained: bool = False
     overwrite_pretrained_bayesian: bool = True
-    pretrained_address_dict = {1:(os.getcwd()+"\\trained_networks\\HAFF_"+str(timestamp).replace(".","") + ".pt"),2:(os.getcwd()+"\\trained_networks\\FF_"+str(timestamp).replace(".","")+ ".pt"),3:(os.getcwd()+"\\trained_networks\\BFF_"+str(timestamp).replace(".","")+ ".pt")}
+    pretrained_address_dict = {1: (os.getcwd() + "\\trained_networks\\HAFF_" + str(timestamp).replace(".", "") + ".pt"),
+                               2: (os.getcwd() + "\\trained_networks\\FF_" + str(timestamp).replace(".", "") + ".pt"),
+                               3: (os.getcwd() + "\\trained_networks\\BFF_" + str(timestamp).replace(".", "") + ".pt")}
     pretrained_address = pretrained_address_dict[choice]
     train_moon_dataset_location = os.getcwd() + "\\dataset\\train_moon_dataset.txt"
     test_moon_dataset_location = os.getcwd() + "\\dataset\\test_moon_dataset.txt"
@@ -116,10 +118,9 @@ class Settings:
     # ==================================================================================================================
     # The pytorch device to use for training and testing. Can be 'cpu', 'cuda' or 'auto'.
     # The automatic setting will use CUDA is a compatible hardware is detected.
-    device: str = 'cpu' #currently unused
+    device: str = 'cpu'  # currently unused
 
-
-    #Prior distribution ratios for bayes by backprop
+    # Prior distribution ratios for bayes by backprop
     prior_sigma1: float = 5
     prior_sigma2: float = 5
     posterior_rho_init: float = -3
@@ -127,24 +128,24 @@ class Settings:
     # The momentum value used by the SGD for parameters update.
     momentum: float = 0.9
 
-    #criterion for half moon
+    # criterion for half moon
     criterion = nn.BCEWithLogitsLoss()
 
-    dataset_mu = 0 #currently unused
-    dataset_sigma = 0 #currently unused
+    dataset_mu = 0  # currently unused
+    dataset_sigma = 0  # currently unused
 
     train_points = 800
     # Save the best network state during the training based on the test accuracy.
     # Then load it when the training is complet.
     # The file will be at the root of run directory, under then name: "best_network.pt"
     # Required checkpoints_per_epoch > 0 and checkpoint_validation = True
-    early_stopping: bool = False #currently unused
+    early_stopping: bool = False  # currently unused
 
     # The number of sample used to compute the loss of bayesian networks.
     bayesian_nb_sample: int = 1
 
     # The weight of complexity cost part when computing the loss of bayesian networks.
-    bayesian_complexity_cost_weight: float = (1/train_points) * (1/batch_size) #1. / train_points
+    bayesian_complexity_cost_weight: float = (1 / train_points) * (1 / batch_size)  # 1. / train_points
 
     # ==================================================================================================================
     # ================================================== Checkpoints ===================================================
@@ -294,7 +295,8 @@ class Settings:
         :return: Human readable description of the settings.
         """
         return 'Settings:\n\t' + \
-               '\n\t'.join([f'{name}: {str(value)}' for name, value in asdict(self).items()])
+            '\n\t'.join([f'{name}: {str(value)}' for name, value in asdict(self).items()])
+
 
 # Singleton setting object
 settings = Settings()

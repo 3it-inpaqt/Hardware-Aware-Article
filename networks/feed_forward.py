@@ -22,15 +22,16 @@ class FeedForward(nn.Module):
         super().__init__()
 
         self.fc1 = nn.Linear(input_size, settings.hidden_layers_size[0])  # Input -> Hidden 1
-        if(nb_classes == 1):
-            self.fc2 = nn.Linear(settings.hidden_layers_size[0],1)  # Hidden 2 -> Output
+        if nb_classes == 1:
+            self.fc2 = nn.Linear(settings.hidden_layers_size[0], 1)  # Hidden 2 -> Output
         else:
-            self.fc2 = nn.Linear(settings.hidden_layers_size[0], nb_classes,bias = False)  # Hidden 2 -> Output
+            self.fc2 = nn.Linear(settings.hidden_layers_size[0], nb_classes, bias=False)  # Hidden 2 -> Output
 
         def weights_init(m):
             if isinstance(m, nn.Linear):
                 torch.nn.init.xavier_uniform_(m.weight)
                 m.bias.data.fill_(0.01)
+
         self.fc1.apply(weights_init)
         self.fc2.apply(weights_init)
         self._criterion = nn.BCEWithLogitsLoss()
@@ -51,14 +52,13 @@ class FeedForward(nn.Module):
         """
         Use network inference for classification a set of input.
         :param inputs: The inputs to classify.
-        :param nb_sample: Not used here, just added for simple compatibility with Bayesian models.
         :return: The class inferred by this method and the confidence it this result (between 0 and 1).
         """
         # Use sigmoid to convert the output into probability (during the training it's done inside BCEWithLogitsLoss)
         outputs = torch.sigmoid(self(inputs))
 
         # We assume that a value far from 0 or 1 mean low confidence (e.g. output:0.25 => class 0 with 50% confidence)
-        predictions = torch.round(outputs) # Round to 0 or 1
+        predictions = torch.round(outputs)  # Round to 0 or 1
         return predictions
 
     def training_step(self, inputs: Any, labels: Any):

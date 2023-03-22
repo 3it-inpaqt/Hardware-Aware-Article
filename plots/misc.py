@@ -15,19 +15,16 @@ mpl.rcParams['font.family'] = 'Arial'
 plt.rcParams['font.size'] = 15
 plt.rcParams['axes.linewidth'] = 2
 
-
-
 mpl.rcParams['xtick.major.size'] = 10
 mpl.rcParams['xtick.major.width'] = 2
 mpl.rcParams['xtick.minor.size'] = 5
 mpl.rcParams['xtick.minor.width'] = 1.5
 
-
-
 mpl.rcParams['ytick.major.size'] = 10
 mpl.rcParams['ytick.major.width'] = 2
 mpl.rcParams['ytick.minor.size'] = 5
 mpl.rcParams['ytick.minor.width'] = 1.5
+
 
 def plot_train_progress(loss_evolution: List[float], accuracy_evolution: List[dict] = None,
                         batch_per_epoch: int = 0) -> None:
@@ -108,7 +105,7 @@ def plot_confusion_matrix(nb_labels_predictions: np.ndarray, class_names: List[s
     plt.ylabel('Labels')
 
 
-def plot_fn(train, test,validation):
+def plot_fn(train, test, validation):
     """
     Basic plot function used for plotting the dataset
     Parameters
@@ -116,22 +113,21 @@ def plot_fn(train, test,validation):
     train: trainset
     test: testset
     validation: validationset
-    fs
 
     Returns
     -------
 
     """
     train_coords, train_labels = train
-    train_xs = train_coords[:,0]
-    train_ys = train_coords[:,1]
-    plt.scatter(train_xs, train_ys, s = 1, label='train')
-    if test != None:
+    train_xs = train_coords[:, 0]
+    train_ys = train_coords[:, 1]
+    plt.scatter(train_xs, train_ys, s=1, label='train')
+    if test is not None:
         test_coords, test_labels = test
         test_xs = test_coords[:, 0]
         test_ys = test_coords[:, 1]
-        plt.scatter(test_xs, test_ys, s = 1, label='test')
-    if test != None:
+        plt.scatter(test_xs, test_ys, s=1, label='test')
+    if test is not None:
         validation_coords, validation_labels = validation
         validation_xs = validation_coords[:, 0]
         validation_ys = validation_coords[:, 1]
@@ -142,7 +138,6 @@ def plot_fn(train, test,validation):
 
 
 def format_plot(x=None, y=None):
-    ax = plt.gca()
     if x is not None:
         plt.xlabel(x, fontsize=20)
     if y is not None:
@@ -155,6 +150,7 @@ def finalize_plot(shape=(1, 1)):
         shape[1] * 1.5 * plt.gcf().get_size_inches()[1])
     plt.tight_layout()
     legend = functools.partial(plt.legend, fontsize=10)
+
 
 def plot_weight_disribution(network):
     """
@@ -182,8 +178,9 @@ def plot_weight_disribution(network):
     plt.show()
     return
 
+
 def flatten_list(_2d_list):
-    '''Flattens a list'''
+    """Flattens a list"""
     flat_list = []
     for element in _2d_list:
         if type(element) is list:
@@ -192,6 +189,7 @@ def flatten_list(_2d_list):
         else:
             flat_list.append(element)
     return flat_list
+
 
 def plot_uncertainty_predicted_value(all_inputs, network):
     """
@@ -217,15 +215,15 @@ def plot_uncertainty_predicted_value(all_inputs, network):
     fig, ax = plt.subplots(figsize=(16, 9))
     testset = torch.load(settings.test_moon_dataset_location)
     contour = ax.contourf(grid[0], grid[1], outputs[1][1].detach().numpy().reshape(200, 200), cmap=cmap, vmin=0,
-                              vmax=settings.vmax)
+                          vmax=settings.vmax)
     ax.scatter(testset.tensors[0][testset.tensors[1] == 1][:, 0], testset.tensors[0][testset.tensors[1] == 1][:, 1],
-                   color="g", edgecolors="k")
+               color="g", edgecolors="k")
     ax.scatter(testset.tensors[0][testset.tensors[1] == 0][:, 0], testset.tensors[0][testset.tensors[1] == 0][:, 1],
-                   color="cornflowerblue", edgecolors="k")
+               color="cornflowerblue", edgecolors="k")
     cbar = plt.colorbar(contour, ax=ax)
     _ = ax.set(xlim=(0, l), ylim=(0, l), xlabel="X", ylabel="Y")
-    cbar.ax.set_ylabel("Standard deviation on simulated transfers");
+    cbar.ax.set_ylabel("Standard deviation on simulated transfers")
     plt.savefig(r"C:\Users\Phili\PycharmProjects\HardawareNN\plots\saved_plots" + '\\uncertainty_solution.png',
-                    format='png', dpi=400, bbox_inches='tight')
+                format='png', dpi=400, bbox_inches='tight')
     plt.show()
     return

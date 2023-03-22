@@ -61,7 +61,7 @@ def test_Standard(network: Module, test_dataset: Dataset, device: torch.device, 
                 break
             # Forward
             outputs = network.infer(inputs, settings.inference_number_contour)
-            if (settings.choice != 2): #If Hardware-aware or Bayesian Network we need multiple inferences
+            if settings.choice != 2:  # If Hardware-aware or Bayesian Network we need multiple inferences
                 all_inputs = torch.cat((all_inputs, inputs))
                 all_means = torch.cat((all_means, outputs[1][0]))
                 all_stds = torch.cat((all_stds, outputs[1][1]))
@@ -73,7 +73,7 @@ def test_Standard(network: Module, test_dataset: Dataset, device: torch.device, 
                 all_outputs = torch.cat((all_outputs, outputs.flatten()))
                 nb_total += len(labels)
                 nb_correct += int(torch.eq(outputs.flatten(), labels).sum())
-    #accuracy
+    # accuracy
     accuracy = float(nb_correct / nb_total)
     plot_uncertainty_predicted_value(all_inputs, network)
     logger.info("mean accuracy: " + str(accuracy))

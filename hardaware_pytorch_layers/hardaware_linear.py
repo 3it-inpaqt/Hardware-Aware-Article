@@ -49,7 +49,7 @@ class Linear(nn.Module):
 
     def __init__(self, in_features: int, out_features: int, bias: bool = True, LRS=2e3, HRS=10e3, a_prog=-6.24e-4,
                  b_prog=0.691, offset_mean=-0.589, offset_std=0.339, failure_mean_LRS=5.73e-4, failure_std_LRS=9.9e-5,
-                 ratio_failure_LRS=0.005, ratio_failure_HRS=0.005, pi =0.5, prior_sigma1 = 5, prior_sigma2 = 5,
+                 ratio_failure_LRS=0.005, ratio_failure_HRS=0.005, pi=0.5, prior_sigma1=5, prior_sigma2=5,
                  min_conductance=((1 / 1e5) * 1e6),
                  scheme="DoubleColumn", device=None, dtype=None) -> None:
         """
@@ -110,7 +110,7 @@ class Linear(nn.Module):
         self.log_posterior_temp = None
         self.w_scaler = MinMaxScaler(feature_range=(self.min_cond, self.max_cond))  # scaler for weight singlecolumn
         self.w_scaler_dc = MinMaxScaler(feature_range=(
-        self.min_cond - self.max_cond, self.max_cond - self.min_cond))  # scaler for weights double column scheme
+            self.min_cond - self.max_cond, self.max_cond - self.min_cond))  # scaler for weights double column scheme
         self.in_features = in_features
         self.out_features = out_features
         self.training = True  # Boolean informing if the layer is still training or not
@@ -143,7 +143,8 @@ class Linear(nn.Module):
         else:
             self.register_parameter('bias', None)
         self.prior_mu_w = torch.zeros(self.weight.shape)
-        self.prior_sigma_w = torch.ones(self.weight.shape) * math.sqrt((pi**2 * prior_sigma1 + (1-pi)**2 * prior_sigma2))
+        self.prior_sigma_w = torch.ones(self.weight.shape) * math.sqrt(
+            (pi ** 2 * prior_sigma1 + (1 - pi) ** 2 * prior_sigma2))
         # Prior distributions for bayes by backprop
         self.prior_dist_w_1 = torch.distributions.Normal(self.prior_mu_w, torch.ones(self.weight.shape))
         self.prior_dist_w_2 = torch.distributions.Normal(self.prior_mu_w, torch.ones(self.weight.shape))
@@ -186,7 +187,7 @@ class Linear(nn.Module):
         :param adj_sigma: the sigma values for the adjacent weights
         :return:
         """
-        if (len(weight.shape) < 2 or weight.shape[0] == 1):
+        if len(weight.shape) < 2 or weight.shape[0] == 1:
             n_weight = weight.clone().reshape(-1, 1)
             n_weight[0] = weight.abs().max().detach()
             n_weight[n_weight < 0] = 0
@@ -231,7 +232,7 @@ class Linear(nn.Module):
         cond_w_neg = np.add(cond_w_neg, offset_neg)
         self.w_offset = w_off_sampler.loc * (cond_w_pos / 100 - cond_w_neg / 100) * ((
                                                                                              weight.max() - weight.min()) / (
-                                                                                                 self.max_cond - self.min_cond)).detach()
+                                                                                             self.max_cond - self.min_cond)).detach()
 
         sigma_p = self.a * cond_w_pos + self.b
         sigma_n = self.a * cond_w_neg + self.b
@@ -248,72 +249,73 @@ class Linear(nn.Module):
         cond_w_neg = np.add(cond_w_neg, adj_n)
 
         # ======== Substitution step by failed devices ======== #
-        if (self.ratio_failure_LRS != 0 or self.ratio_failure_HRS != 0):  # avoid division by 0
-            HRS_mask_pos = torch.FloatTensor(weight.shape).uniform_() <= self.ratio_failure_HRS / (
+        if self.ratio_failure_LRS != 0 or self.ratio_failure_HRS != 0:  # avoid division by 0
+            hrs_mask_pos = torch.FloatTensor(weight.shape).uniform_() <= self.ratio_failure_HRS / (
                     self.ratio_failure_LRS + self.ratio_failure_HRS)
-            LRS_mask_pos = torch.bitwise_not(HRS_mask_pos)
+            lrs_mask_pos = torch.bitwise_not(hrs_mask_pos)
             mask_w_pos = torch.FloatTensor(
                 weight.shape).uniform_() <= self.ratio_failure  # Create a random weight mask based on the probability of failure of the devices
-            HRS_mask_pos = torch.bitwise_and(HRS_mask_pos, mask_w_pos)
-            LRS_mask_pos = torch.bitwise_and(LRS_mask_pos, mask_w_pos)
+            hrs_mask_pos = torch.bitwise_and(hrs_mask_pos, mask_w_pos)
+            lrs_mask_pos = torch.bitwise_and(lrs_mask_pos, mask_w_pos)
 
-            HRS_mask_neg = torch.FloatTensor(weight.shape).uniform_() <= self.ratio_failure_HRS / (
+            hrs_mask_neg = torch.FloatTensor(weight.shape).uniform_() <= self.ratio_failure_HRS / (
                     self.ratio_failure_LRS + self.ratio_failure_HRS)
-            LRS_mask_neg = torch.bitwise_not(HRS_mask_neg)
+            lrs_mask_neg = torch.bitwise_not(hrs_mask_neg)
             mask_w_neg = torch.FloatTensor(
                 weight.shape).uniform_() <= self.ratio_failure  # Create a random weight mask based on the probability of failure of the devices
-            HRS_mask_neg = torch.bitwise_and(HRS_mask_neg, mask_w_neg)
-            LRS_mask_neg = torch.bitwise_and(LRS_mask_neg, mask_w_neg)
+            hrs_mask_neg = torch.bitwise_and(hrs_mask_neg, mask_w_neg)
+            lrs_mask_neg = torch.bitwise_and(lrs_mask_neg, mask_w_neg)
 
-            self.mask_w = torch.logical_or(torch.logical_or(HRS_mask_neg, LRS_mask_neg),
-                                           torch.logical_or(HRS_mask_pos, LRS_mask_pos))
+            self.mask_w = torch.logical_or(torch.logical_or(hrs_mask_neg, lrs_mask_neg),
+                                           torch.logical_or(hrs_mask_pos, lrs_mask_pos))
             mask_w = self.mask_w
             # Compile some statistics for how much substitution is seen on average
-            if (len(mask_w) != 1):
+            if len(mask_w) != 1:
                 if mask_w.count_nonzero().numpy() * 100 / np.prod(mask_w.shape) > self.max_mask_w:
                     self.max_mask_w = mask_w.count_nonzero().numpy() * 100 / np.prod(mask_w.shape)
                 self.substitution.append(mask_w.count_nonzero().numpy() * 100 / len(mask_w))
             cond_w_pos = cond_w_pos.float()
-            cond_w_pos[LRS_mask_pos] = w_failure_sampler.sample()[LRS_mask_pos] * 1e6
-            cond_w_pos[HRS_mask_pos] = ((self.max_HRS_conductance - self.min_conductance) * torch.rand(weight.shape)[
-                HRS_mask_pos] + self.min_conductance)
+            cond_w_pos[lrs_mask_pos] = w_failure_sampler.sample()[lrs_mask_pos] * 1e6
+            cond_w_pos[hrs_mask_pos] = ((self.max_HRS_conductance - self.min_conductance) * torch.rand(weight.shape)[
+                hrs_mask_pos] + self.min_conductance)
 
             cond_w_neg = cond_w_neg.float()
-            cond_w_neg[LRS_mask_neg] = w_failure_sampler.sample()[LRS_mask_neg] * 1e6
-            cond_w_neg[HRS_mask_neg] = ((self.max_HRS_conductance - self.min_conductance) * torch.rand(weight.shape)[
-                HRS_mask_neg] + self.min_conductance)
-        if (sigma_resh):  # to reshape the sigma
+            cond_w_neg[lrs_mask_neg] = w_failure_sampler.sample()[lrs_mask_neg] * 1e6
+            cond_w_neg[hrs_mask_neg] = ((self.max_HRS_conductance - self.min_conductance) * torch.rand(weight.shape)[
+                hrs_mask_neg] + self.min_conductance)
+        if sigma_resh:  # to reshape the sigma
             w_global = cond_w_pos - cond_w_neg
-            if (settings.elbo):
+            if settings.elbo:
                 self.sigma = (((np.sqrt(
                     sigma_p ** 2 + sigma_n ** 2 + offset_sigma_p ** 2 + offset_sigma_n ** 2 + 2 * adj_sigma)) * (
                                        weight.max() - weight.min())) / (
-                                          self.max_cond - self.min_cond)).detach()  # + weight.min() #- (self.min_cond - self.max_cond))
+                                      self.max_cond - self.min_cond)).detach()  # + weight.min() #- (self.min_cond - self.max_cond))
             w_equ = (torch.FloatTensor(final_scaler.inverse_transform(w_global.reshape(-1, 1))))
             delta = w_equ.squeeze() - weight.detach()  # necessary for reparametrization trick
             weight = weight + delta
             # weight[weight >= 0] = weight[weight >= 0] + delta_p[weight >= 0]
-            if ((len(w_equ.squeeze().shape) != 0 and self.ratio_failure_LRS != 0) and settings.elbo):
-                self.sigma[torch.bitwise_and(LRS_mask_neg, LRS_mask_pos)] = 99.44 * (weight.max() - weight.min()) / (
-                            self.max_cond - self.min_cond)
-                self.sigma[torch.bitwise_and(HRS_mask_neg, HRS_mask_pos)] = 14 * (weight.max() - weight.min()) / (
+            if (len(w_equ.squeeze().shape) != 0 and self.ratio_failure_LRS != 0) and settings.elbo:
+                self.sigma[torch.bitwise_and(lrs_mask_neg, lrs_mask_pos)] = 99.44 * (weight.max() - weight.min()) / (
+                        self.max_cond - self.min_cond)
+                self.sigma[torch.bitwise_and(hrs_mask_neg, hrs_mask_pos)] = 14 * (weight.max() - weight.min()) / (
                         self.max_cond - self.min_cond)
         else:
             w_global = cond_w_pos - cond_w_neg
-            if (settings.elbo):
+            if settings.elbo:
                 self.sigma = (((np.sqrt(
                     sigma_p ** 2 + sigma_n ** 2 + offset_sigma_p ** 2 + offset_sigma_n ** 2 + 2 * adj_sigma)) * (
                                        weight.max() - weight.min())) / (
-                                          self.max_cond - self.min_cond)).detach()  # + weight.min()
+                                      self.max_cond - self.min_cond)).detach()  # + weight.min()
             w_equ = torch.FloatTensor(final_scaler.inverse_transform(w_global.reshape(-1, 1))).reshape(weight.shape)
             delta = w_equ - weight.detach()
             weight = weight + delta
-            if ((self.ratio_failure_LRS != 0 or self.ratio_failure_HRS != 0) and settings.elbo):
-                self.sigma[torch.bitwise_and(LRS_mask_neg, LRS_mask_pos)] = 99.44 * (weight.max() - weight.min()) / (
-                            self.max_cond - self.min_cond)
-                self.sigma[torch.bitwise_and(HRS_mask_neg, HRS_mask_pos)] = 14 * (weight.max() - weight.min()) / (
-                            self.max_cond - self.min_cond)
+            if (self.ratio_failure_LRS != 0 or self.ratio_failure_HRS != 0) and settings.elbo:
+                self.sigma[torch.bitwise_and(lrs_mask_neg, lrs_mask_pos)] = 99.44 * (weight.max() - weight.min()) / (
+                        self.max_cond - self.min_cond)
+                self.sigma[torch.bitwise_and(hrs_mask_neg, hrs_mask_pos)] = 14 * (weight.max() - weight.min()) / (
+                        self.max_cond - self.min_cond)
         return weight
+
     def weight_sampler_sc(self, weight, scaler, w_off_sampler, w_sampler, w_failure_sampler, adj, adj_sigma):
         """
         Double column scheme to sample new weights and add variability to them
@@ -323,13 +325,12 @@ class Linear(nn.Module):
         :param w_off_sampler: the sampler for the offset
         :param w_sampler: sampler for the programming precision
         :param w_failure_sampler: sampler for the failed weights value
-        :param adj_p: the adjacent offsets for positive weights
-        :param adj_n: the adjacent offsets for negative weights
+        :param adj: the adjacent offsets
         :param adj_sigma: the sigma values for the adjacent weights
         :return:
         """
         self.mu = weight
-        if (len(weight.shape) < 2):
+        if len(weight.shape) < 2:
             # Fit MinMaxScaler between LRS and HRS
             scaler.fit(weight.detach().reshape(-1, 1))
             cond_w = scaler.transform(weight.detach().reshape(-1, 1))
@@ -344,32 +345,32 @@ class Linear(nn.Module):
         cond_w = np.subtract(cond_w, (self.w_offset * cond_w) / 100)
         self.w_offset = (w_off_sampler.loc * cond_w) / 100 * ((
                                                                       weight.max() - weight.min()) / (
-                                                                          self.max_cond - self.min_cond)).detach()
+                                                                      self.max_cond - self.min_cond)).detach()
         sigma = self.a * cond_w + self.b
         sigma = sigma / 100 * cond_w  # get the sigma in conductance value
         offset_sigma = self.offset_std / 100 * cond_w  # get the offset sigma in conductance value
         cond_w = np.add(cond_w, sigma * w_sampler.sample())  # reparametrization trick
         cond_w = np.add(cond_w, adj)
         # Substitution step
-        if (self.ratio_failure_LRS != 0 or self.ratio_failure_HRS != 0):  # avoid division by 0
-            HRS_mask = torch.FloatTensor(weight.shape).uniform_() <= self.ratio_failure_HRS / (
-                        self.ratio_failure_LRS + self.ratio_failure_HRS)
-            LRS_mask = torch.bitwise_not(HRS_mask)
+        if self.ratio_failure_LRS != 0 or self.ratio_failure_HRS != 0:  # avoid division by 0
+            hrs_mask = torch.FloatTensor(weight.shape).uniform_() <= self.ratio_failure_HRS / (
+                    self.ratio_failure_LRS + self.ratio_failure_HRS)
+            lrs_mask = torch.bitwise_not(hrs_mask)
             mask_w = torch.FloatTensor(
                 weight.shape).uniform_() <= self.ratio_failure  # Create a random weight mask based on the probability of failure of the devices
-            HRS_mask = torch.bitwise_and(HRS_mask, mask_w)
-            LRS_mask = torch.bitwise_and(LRS_mask, mask_w)
+            hrs_mask = torch.bitwise_and(hrs_mask, mask_w)
+            lrs_mask = torch.bitwise_and(lrs_mask, mask_w)
             self.mask_w = mask_w
             cond_w = cond_w.float()
             try:
-                cond_w[LRS_mask] = w_failure_sampler.sample()[LRS_mask] * 1e6
-                cond_w[HRS_mask] = ((self.max_HRS_conductance - self.min_conductance) * torch.rand(weight.shape)[
-                    HRS_mask] + self.min_conductance)
+                cond_w[lrs_mask] = w_failure_sampler.sample()[lrs_mask] * 1e6
+                cond_w[hrs_mask] = ((self.max_HRS_conductance - self.min_conductance) * torch.rand(weight.shape)[
+                    hrs_mask] + self.min_conductance)
             except:
-                print(LRS_mask)
-        if (sigma_resh):  # to reshape the sigma
+                print(lrs_mask)
+        if sigma_resh:  # to reshape the sigma
             new_ratio = weight.max() - weight.min()
-            if (new_ratio == 0):
+            if new_ratio == 0:
                 new_ratio = 1
             self.sigma = (((np.sqrt(
                 sigma ** 2 + offset_sigma ** 2 + adj_sigma)) * (
@@ -377,12 +378,12 @@ class Linear(nn.Module):
             w_equ = (torch.FloatTensor(scaler.inverse_transform(cond_w.reshape(-1, 1))))
             delta = w_equ.squeeze() - weight.detach()  # necessary for reparametrization trick
             weight = weight + delta
-            if ((len(w_equ.squeeze().shape) != 0 and self.ratio_failure_LRS != 0) and settings.elbo):
-                self.sigma[LRS_mask] = 99.44 * (weight.max() - weight.min()) / (self.max_cond - self.min_cond)
-                self.sigma[HRS_mask] = 14 * (weight.max() - weight.min()) / (self.max_cond - self.min_cond)
+            if (len(w_equ.squeeze().shape) != 0 and self.ratio_failure_LRS != 0) and settings.elbo:
+                self.sigma[lrs_mask] = 99.44 * (weight.max() - weight.min()) / (self.max_cond - self.min_cond)
+                self.sigma[hrs_mask] = 14 * (weight.max() - weight.min()) / (self.max_cond - self.min_cond)
         else:
             new_ratio = weight.max() - weight.min()
-            if (new_ratio == 0):
+            if new_ratio == 0:
                 new_ratio = 1
             self.sigma = (((np.sqrt(
                 sigma ** 2 + offset_sigma ** 2 + adj_sigma)) * (
@@ -390,70 +391,72 @@ class Linear(nn.Module):
             w_equ = (torch.FloatTensor(scaler.inverse_transform(cond_w)))
             delta = w_equ - weight.detach()
             weight = weight + delta
-            if ((self.ratio_failure_LRS != 0 or self.ratio_failure_HRS != 0) and settings.elbo):
+            if (self.ratio_failure_LRS != 0 or self.ratio_failure_HRS != 0) and settings.elbo:
                 try:
-                    self.sigma[LRS_mask] = 99.44 * (weight.max() - weight.min()) / (self.max_cond - self.min_cond)
-                    self.sigma[HRS_mask] = 14 * (weight.max() - weight.min()) / (self.max_cond - self.min_cond)
-                    self.mu[HRS_mask] = 45 * (weight.max() - weight.min()) / (self.max_cond - self.min_cond)
-                    self.mu[LRS_mask] = 572.99 * (weight.max() - weight.min()) / (self.max_cond - self.min_cond)
+                    self.sigma[lrs_mask] = 99.44 * (weight.max() - weight.min()) / (self.max_cond - self.min_cond)
+                    self.sigma[hrs_mask] = 14 * (weight.max() - weight.min()) / (self.max_cond - self.min_cond)
+                    self.mu[hrs_mask] = 45 * (weight.max() - weight.min()) / (self.max_cond - self.min_cond)
+                    self.mu[lrs_mask] = 572.99 * (weight.max() - weight.min()) / (self.max_cond - self.min_cond)
                 except:
                     print("error")
         return weight
+
     def init_adj_sigma(self, adj_sigma_use):
-            """
-            Initializes the adjacent effect detuning sigmas if elbo is to be used. However, note that this is
-            Parameters
-            ----------
-            adj_sigma_use
+        """
+        Initializes the adjacent effect detuning sigmas if elbo is to be used. However, note that this is
+        Parameters
+        ----------
+        adj_sigma_use
 
-            Returns
-            -------
+        Returns
+        -------
 
-            """
-            x = 0
-            y = 0
-            for i in range(torch.numel(self.weight), 0, -1):
-                if (len(self.weight.shape) > 1 and self.weight.shape[0] > 1):
-                    if (i != 0):
-                        self.adj_s_w[y][x] = self.delta_sigma_dicts[str(i)] * 1e6
-                    else:
-                        self.adj_s_w[y][x] = 0
-                    y += 1
-                    if (y == 8):
-                        y = 0
-                        x += 1
+        """
+        x = 0
+        y = 0
+        for i in range(torch.numel(self.weight), 0, -1):
+            if len(self.weight.shape) > 1 and self.weight.shape[0] > 1:
+                if i != 0:
+                    self.adj_s_w[y][x] = self.delta_sigma_dicts[str(i)] * 1e6
                 else:
-                    self.adj_s_w[0][x] = self.delta_sigma_dicts[str(i)] * 1e6
+                    self.adj_s_w[y][x] = 0
+                y += 1
+                if y == 8:
+                    y = 0
                     x += 1
-            self.adj_s_w[-1][-1] = 0
-            x = 0
-            y = 0
-            for i in range(torch.numel(self.bias), 0, -1):
-                if (len(self.bias.shape) > 1 and self.bias.shape[0] > 1):
-                    if (i != 0):
-                        self.adj_s_b[y][x] = self.delta_sigma_dicts[str(i)] * 1e6
-                    else:
-                        self.adj_s_b[y][x] = 0
-                    y += 1
-                    if (y == 8):
-                        y = 0
-                        x += 1
+            else:
+                self.adj_s_w[0][x] = self.delta_sigma_dicts[str(i)] * 1e6
+                x += 1
+        self.adj_s_w[-1][-1] = 0
+        x = 0
+        y = 0
+        for i in range(torch.numel(self.bias), 0, -1):
+            if len(self.bias.shape) > 1 and self.bias.shape[0] > 1:
+                if i != 0:
+                    self.adj_s_b[y][x] = self.delta_sigma_dicts[str(i)] * 1e6
                 else:
-                    if (len(self.adj_s_b.shape) > 1):
-                        self.adj_s_b[0][x] = self.delta_sigma_dicts[str(i)] * 1e6
-                    else:
-                        self.adj_s_b[x] = self.delta_sigma_dicts[str(i)] * 1e6
+                    self.adj_s_b[y][x] = 0
+                y += 1
+                if y == 8:
+                    y = 0
                     x += 1
-            if (len(self.adj_s_b.shape) > 1):
-                self.adj_s_b[-1][-1] = 0
             else:
-                self.adj_s_b[-1] = 0
-            if (adj_sigma_use):
-                self.adj_s_b_squared = (self.adj_s_b) ** 2
-                self.adj_s_w_squared = (self.adj_s_w) ** 2
-            else:
-                self.adj_s_b_squared = torch.zeros(self.adj_s_b.shape)
-                self.adj_s_w_squared = torch.zeros(self.adj_s_w.shape)
+                if len(self.adj_s_b.shape) > 1:
+                    self.adj_s_b[0][x] = self.delta_sigma_dicts[str(i)] * 1e6
+                else:
+                    self.adj_s_b[x] = self.delta_sigma_dicts[str(i)] * 1e6
+                x += 1
+        if len(self.adj_s_b.shape) > 1:
+            self.adj_s_b[-1][-1] = 0
+        else:
+            self.adj_s_b[-1] = 0
+        if adj_sigma_use:
+            self.adj_s_b_squared = self.adj_s_b ** 2
+            self.adj_s_w_squared = self.adj_s_w ** 2
+        else:
+            self.adj_s_b_squared = torch.zeros(self.adj_s_b.shape)
+            self.adj_s_w_squared = torch.zeros(self.adj_s_w.shape)
+
     def init_adj_mu(self):
         """
         Initiates the mu of adjacent devices
@@ -463,13 +466,13 @@ class Linear(nn.Module):
         x = 0
         y = 0
         for i in range(torch.numel(self.weight), 0, -1):
-            if (len(self.weight.shape) > 1 and self.weight.shape[0] > 1):
-                if (i != 0):
+            if len(self.weight.shape) > 1 and self.weight.shape[0] > 1:
+                if i != 0:
                     self.adj_mu_w[y][x] = self.delta_mu_dicts[str(i)] * 1e6
                 else:
                     self.adj_mu_w[y][x] = 0
                 y += 1
-                if (y == 8):
+                if y == 8:
                     y = 0
                     x += 1
             else:
@@ -479,25 +482,26 @@ class Linear(nn.Module):
         x = 0
         y = 0
         for i in range(torch.numel(self.bias), 0, -1):
-            if (len(self.bias.shape) > 1 and self.bias.shape[0] > 1):
-                if (i != 0):
+            if len(self.bias.shape) > 1 and self.bias.shape[0] > 1:
+                if i != 0:
                     self.adj_mu_b[y][x] = self.delta_mu_dicts[str(i)] * 1e6
                 else:
                     self.adj_mu_b[y][x] = 0
                 y += 1
-                if (y == 8):
+                if y == 8:
                     y = 0
                     x += 1
             else:
-                if (len(self.adj_mu_b.shape) > 1):
+                if len(self.adj_mu_b.shape) > 1:
                     self.adj_mu_b[0][x] = self.delta_mu_dicts[str(i)] * 1e6
                 else:
                     self.adj_mu_b[x] = self.delta_mu_dicts[str(i)] * 1e6
                 x += 1
-        if (len(self.adj_mu_b.shape) > 1):
+        if len(self.adj_mu_b.shape) > 1:
             self.adj_mu_b[-1][-1] = 0
         else:
             self.adj_mu_b[-1] = 0
+
     def sample_adj_effect_offsets(self):
         """
         Code to sample new random detuning effects to to neighbours programming from the database.
@@ -505,8 +509,8 @@ class Linear(nn.Module):
         x = 0
         y = 0
         for i in range(torch.numel(self.weight), 0, -1):
-            if (len(self.weight.shape) > 1 and self.weight.shape[0] > 1):
-                if (i != 0):
+            if len(self.weight.shape) > 1 and self.weight.shape[0] > 1:
+                if i != 0:
                     self.adj_off_w_p[y][x] = random.choice(self.delta_dicts[str(i)]) * 1e6
                     self.adj_off_w_n[y][x] = random.choice(self.delta_dicts[str(i)]) * 1e6
                     if abs(self.adj_off_w_p[y][x]) > 4 * self.delta_sigma_dicts[
@@ -518,7 +522,7 @@ class Linear(nn.Module):
                     self.adj_off_w_p[y][x] = 0
                     self.adj_off_w_n[y][x] = 0
                 y += 1
-                if (y == 8):
+                if y == 8:
                     y = 0
                     x += 1
             else:
@@ -535,8 +539,8 @@ class Linear(nn.Module):
         x = 0
         y = 0
         for i in range(torch.numel(self.bias), 0, -1):
-            if (len(self.bias.shape) > 1 and self.bias.shape[0] > 1):
-                if (i != 0):
+            if len(self.bias.shape) > 1 and self.bias.shape[0] > 1:
+                if i != 0:
                     self.adj_off_b_p[y][x] = random.choice(self.delta_dicts[str(i)]) * 1e6
                     self.adj_off_b_n[y][x] = random.choice(self.delta_dicts[str(i)]) * 1e6
                     if abs(self.adj_off_b_p[y][x]) > 4 * self.delta_sigma_dicts[
@@ -548,7 +552,7 @@ class Linear(nn.Module):
                     self.adj_off_b_p[y][x] = 0
                     self.adj_off_b_n[y][x] = 0
                 y += 1
-                if (y == 8):
+                if y == 8:
                     y = 0
                     x += 1
             else:
@@ -610,7 +614,7 @@ class Linear(nn.Module):
                                                 LRS_failure_sampler, adj_off_p, adj_s_squared)
             self.sigma = self.sigma.squeeze()
             sc = True
-        elif (weight.shape != torch.Size([1])):
+        elif weight.shape != torch.Size([1]):
             new_weight = self.weight_sampler_dc(weight, w_scaler_dc, w_offset_sampler,
                                                 w_sampler,
                                                 LRS_failure_sampler, adj_off_p, adj_off_n,
@@ -623,8 +627,8 @@ class Linear(nn.Module):
             self.sigma = torch.Tensor(0)
             self.w_offset = 0
         mask_w = self.mask_w  # debug purposes
-        if (settings.elbo and weight.shape != torch.Size([1])):
-            if (self.bbyb):  # Bayes by backprop procedure
+        if settings.elbo and weight.shape != torch.Size([1]):
+            if self.bbyb:  # Bayes by backprop procedure
                 self.kld += (self.log_posterior(new_weight, weight + self.w_offset, self.sigma,
                                                 self.mask_w) - self.log_prior(
                     new_weight,
@@ -633,15 +637,18 @@ class Linear(nn.Module):
             else:  # VAE procedure
                 logvar = torch.log(self.sigma ** 2)
                 inner_equ = 1 + logvar - new_weight.pow(2) - logvar.exp()
-                if (inner_equ.ndim > 1):
+                if inner_equ.ndim > 1:
                     self.kld += torch.mean(-0.5 * torch.sum(inner_equ, dim=1), dim=0)
                 else:
                     self.kld += torch.mean(-0.5 * torch.sum(inner_equ, dim=0), dim=0)
         return new_weight, mask_w, sc
+
     def extra_repr(self) -> str:
         return 'in_features={}, out_features={}, bias={}'.format(
             self.in_features, self.out_features, self.bias is not None
         )
+
+
 # This class exists solely to avoid triggering an obscure error when scripting
 # an improperly quantized attention layer. See this issue for details:
 # https://github.com/pytorch/pytorch/issues/58969
