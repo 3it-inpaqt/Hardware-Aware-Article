@@ -1,6 +1,9 @@
 torch>=2.0
+torchvision>=0.15
 numpy>=1.24
 configargparse>=1.5
 matplotlib>=3.7
 codetiming>=1.4
 scikit-learn>=1.2
+seaborn>=0.12
+scipy>=1.10

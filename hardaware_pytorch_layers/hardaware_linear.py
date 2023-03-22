@@ -1,14 +1,15 @@
 import math
+import pickle
+import random
 
+import numpy as np
 import torch
+import torch.nn as nn
 from sklearn.preprocessing import MinMaxScaler
 from torch import Tensor
-from torch.nn.parameter import Parameter, UninitializedParameter
-import torch.nn as nn
-import random
-from torch.nn import functional as F
-import numpy as np
-import pickle
+from torch.nn import functional as f
+from torch.nn.parameter import Parameter
+
 from utils.settings import settings
 
 
@@ -583,7 +584,7 @@ class Linear(nn.Module):
                                                               self.adj_off_b_n,
                                                               self.adj_s_b_squared, self.prior_dist_b_1,
                                                               self.prior_dist_b_2)
-        return F.linear(input, new_weight, new_bias)  # perform Linear layer operation
+        return f.linear(input, new_weight, new_bias)  # perform Linear layer operation
 
     def w_forward(self, weight, w_scaler, w_scaler_dc, w_offset_sampler, w_sampler, LRS_failure_sampler, adj_off_p,
                   adj_off_n, adj_s_squared, prior_dist_1, prior_dist_2):

@@ -1,10 +1,12 @@
 import torch
 from torch.nn import Module
 from torch.utils.data import DataLoader, Dataset
+
+from plots.misc import plot_uncertainty_predicted_value
 from utils.logger import logger
 from utils.settings import settings
 from utils.timer import SectionTimer
-from plots.misc import plot_uncertainty_predicted_value
+
 
 def test_Standard(network: Module, test_dataset: Dataset, device: torch.device, test_name: str = '',
                   final: bool = False,

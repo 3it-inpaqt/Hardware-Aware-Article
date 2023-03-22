@@ -1,12 +1,14 @@
-from dataset.moon_dataset import generate_moon
-from networks.hardaware_feed_forward import Hardaware_FeedForward
-from networks.feed_forward import FeedForward
-from train_Standard import train_Standard
-from test_Standard import test_Standard
-from utils.logger import logger
-from plots.misc import plot_fn
-import torch
 import os
+
+import torch
+
+from dataset.moon_dataset import generate_moon
+from networks.feed_forward import FeedForward
+from networks.hardaware_feed_forward import Hardaware_FeedForward
+from plots.misc import plot_fn
+from test_Standard import test_Standard
+from train_Standard import train_Standard
+from utils.logger import logger
 from utils.settings import settings
 
 network_dict = {1:Hardaware_FeedForward, 2: FeedForward}

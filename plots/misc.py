@@ -1,16 +1,16 @@
 import functools
 from typing import List
+
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-#import pymc3 as pm
-from matplotlib.ticker import AutoMinorLocator
-import torch
-import matplotlib as mpl
 import scipy.stats as stats
+import seaborn as sns
+import torch
 from matplotlib.ticker import FuncFormatter
 
 from utils.settings import settings
+
 mpl.rcParams['font.family'] = 'Arial'
 plt.rcParams['font.size'] = 15
 plt.rcParams['axes.linewidth'] = 2

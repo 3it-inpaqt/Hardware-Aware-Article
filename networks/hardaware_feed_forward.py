@@ -1,12 +1,12 @@
 from typing import Any
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torchvision.transforms as tr
-from hardaware_pytorch_layers.hardaware_linear import Linear
 from torch import optim
-import numpy as np
 
+from hardaware_pytorch_layers.hardaware_linear import Linear
 from utils.settings import settings
 
 

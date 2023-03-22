@@ -1,8 +1,9 @@
+import matplotlib.pyplot as plt
 import torch
 from sklearn.datasets import make_moons
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-import matplotlib.pyplot as plt
+
 
 def generate_moon():
     X_old, Y_old = make_moons(noise=0.05, random_state=42, n_samples=1000)

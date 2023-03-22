@@ -1,13 +1,15 @@
 import argparse
+import os
 import re
 from dataclasses import asdict, dataclass
-from typing import Sequence, Union
-import os
-import configargparse
-from numpy.distutils.misc_util import is_sequence
 from datetime import datetime
-from utils.logger import logger
+from typing import Sequence, Union
+
+import configargparse
 import torch.nn as nn
+from numpy.distutils.misc_util import is_sequence
+
+from utils.logger import logger
 
 
 @dataclass(init=False, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
