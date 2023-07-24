@@ -23,6 +23,7 @@ class Hardaware_FeedForward(nn.Module):
         :param input_size: The size of one item of the dataset used for the training
         :param nb_classes: Number of class to classify
         """
+        self.epsilon = 0.01
         super().__init__()
         self.bayesian_nb_sample = settings.bayesian_nb_sample  # number of samples for the training if the bayesian averaging the loss approach is taken
         self.fc1 = Linear(input_size, settings.hidden_layers_size[0])  # Input -> Hidden 1
@@ -57,8 +58,14 @@ class Hardaware_FeedForward(nn.Module):
         """
         x = self.dropout(x)
         x = torch.sigmoid(self.fc1(x))
+        # x = x + self.epsilon * torch.randn(x.shape) 
+        # if training:  # Add noise only during training
+        #     x = x + self.epsilon * torch.randn(x.shape).to(x.device)  # Ensure the noise tensor is on the same device as x
         x = self.dropout(x)
         x = self.fc2(x)
+        # x = x + self.epsilon * torch.randn(x.shape)
+        # if training:  # Add noise only during training
+        #     x = x + self.epsilon * torch.randn(x.shape).to(x.device)  # Ensure the noise tensor is on the same device as x
         return x
 
     def infer(self, inputs, nb_samples: int = 10):
@@ -135,6 +142,38 @@ class Hardaware_FeedForward(nn.Module):
                 layer.bias[layer.mask_w_bias] = no_grad_values[i][1].detach()
                 i += 1
         return loss
+
+    def validation_step(self, inputs: Any, labels: Any):
+        """
+        Define the logic for one validation step.
+
+        :param inputs: The input from the validation dataset, could be a batch or an item
+        :param labels: The label of the item or the batch
+        :return: The validation loss value
+        """
+        # Forward only
+        with torch.no_grad():
+            losses = []
+            loss = 0
+            for i in range(self.bayesian_nb_sample):
+                outputs = self(inputs, True)
+                self.p_layers = [self.fc1.mask_w, self.fc1.mask_b, self.fc2.mask_w, self.fc2.mask_b]
+                try:
+                    loss = self._criterion(outputs.squeeze(), labels)
+                except:
+                    continue
+                kld = 0  # Kullback Leibler Divergence term
+                if self.elbo:
+                    for layer in self.layers:
+                        kld += layer.kld
+                    elbo = loss + settings.bayesian_complexity_cost_weight * kld
+                    loss = elbo
+                losses.append(loss)
+            if settings.bayesian_nb_sample > 1:
+                for i in range(len(losses) - 1):
+                    loss += losses[i]
+                loss = loss / settings.bayesian_nb_sample
+            return loss
 
     def get_hook(self, bit_map):
         def hook(grad):

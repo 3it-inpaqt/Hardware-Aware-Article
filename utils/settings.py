@@ -3,7 +3,7 @@ import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Sequence, Union
-
+from pathlib import Path
 import configargparse
 import torch.nn as nn
 from numpy.distutils.misc_util import is_sequence
@@ -49,7 +49,7 @@ class Settings:
     # If True and the run have a valid name, save the neural network parameters in the run directory at the end of the
     # training. Saved before applying early stopping if enabled.
     # The file will be at the root of run directory, under then name: "final_network.pt"
-    save_network: bool = False
+    save_network: bool = True
     # ==================================================================================================================
     # ==================================================== Dataset =====================================================
     # ==================================================================================================================
@@ -57,14 +57,14 @@ class Settings:
     # All neural network parameters:
     choice: int = 1
     # The number of training epoch.
-    nb_epoch: int = 10000
+    nb_epoch: int = 2000
     elbo: bool = False
     adj_sigma: bool = False
     bbyb: bool = False
     # The size of the mini-batch for the training and testing.
     batch_size: int = 256
     # The learning rate value used by the SGD for parameters update.
-    learning_rate: float = 0.1
+    learning_rate: float = 0.01
     HRS_failure_rate: float = 0.005
     LRS_failure_rate: float = 0.005
     # ==================================================================================================================
@@ -86,13 +86,17 @@ class Settings:
     load_pretrained: bool = False
     overwrite_pretrained: bool = False
     overwrite_pretrained_bayesian: bool = True
-    pretrained_address_dict = {1: (os.getcwd() + "/trained_networks/HAFF_" + str(timestamp).replace(".", "") + ".pt"),
-                               2: (os.getcwd() + "/trained_networks/FF_" + str(timestamp).replace(".", "") + ".pt"),
-                               3: (os.getcwd() + "/trained_networks/BFF_" + str(timestamp).replace(".", "") + ".pt")}
+    folder = Path(os.getcwd(), "trained_networks")
+    pretrained_address_dict = {
+        1: Path(folder, "Hardaware_1689193130947455.pt"),
+        2: Path(folder, "FeedForward_1689189403889284.pt"),
+        3: Path(folder, "Hardaware_1689015691928564.pt"),
+    }
     pretrained_address = pretrained_address_dict[choice]
-    train_moon_dataset_location = os.getcwd() + "/dataset/train_moon_dataset.txt"
-    test_moon_dataset_location = os.getcwd() + "/dataset/test_moon_dataset.txt"
-    validation_moon_dataset_location = os.getcwd() + "/dataset/validation_moon_dataset.txt"
+    train_moon_dataset_location = Path(os.getcwd(), "dataset", "train_moon_dataset.txt")
+    test_moon_dataset_location = Path(os.getcwd(), "dataset", "test_moon_dataset.txt")
+    validation_moon_dataset_location = Path(os.getcwd(), "dataset", "validation_moon_dataset.txt")
+
     # The number of data loader workers, to take advantage of multithreading. Always disable with CUDA.
     # 0 means automatic setting (using cpu count).
     nb_loader_workers: int = 0

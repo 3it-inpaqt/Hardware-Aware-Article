@@ -1,16 +1,17 @@
 import torch
 from torch.nn import Module
 from torch.utils.data import DataLoader, Dataset
-
+from typing import Callable
+from typing import Tuple
+from utils.settings import settings
 from plots.misc import plot_uncertainty_predicted_value
+from plots.misc import plot_output_and_training_data
 from utils.logger import logger
 from utils.settings import settings
 from utils.timer import SectionTimer
+import numpy as np
 
-
-def test_standard(network: Module, test_dataset: Dataset, device: torch.device, test_name: str = '',
-                  final: bool = False,
-                  limit: int = 0) -> float:
+def test_standard(network: Module, test_dataset: Dataset, device: torch.device, criterion, network_type: int, test_name: str = '', final: bool = False, limit: int = 0) -> float:
     """
     Start testing the network on a dataset.
 
@@ -53,13 +54,20 @@ def test_standard(network: Module, test_dataset: Dataset, device: torch.device, 
     all_inputs = torch.Tensor()
     all_outputs = torch.Tensor()
     # Disable gradient for performances
+    running_loss = 0.0
     with torch.no_grad(), SectionTimer(f'network testing{test_name}', 'info' if final else 'debug'):
-        # Iterate batches
         for i, (inputs, labels) in enumerate(test_loader):
             # Stop testing after the limit
             if limit and i * settings.batch_size >= limit:
                 break
             # Forward
+            # outputs = network.infer(inputs, settings.inference_number_contour)
+            # labels_tensor = torch.as_tensor(labels)
+            # if network_type == 1:
+            #     outputs = outputs[0]
+            # loss = criterion(outputs, labels.unsqueeze(1))
+            # running_loss += loss.item()
+
             outputs = network.infer(inputs, settings.inference_number_contour)
             if settings.choice != 2:  # If Hardware-aware or Bayesian Network we need multiple inferences
                 all_inputs = torch.cat((all_inputs, inputs))
@@ -70,11 +78,36 @@ def test_standard(network: Module, test_dataset: Dataset, device: torch.device, 
                 nb_correct += int(torch.eq(outputs[0].flatten(), labels).sum())
             else:
                 all_inputs = torch.cat((all_inputs, inputs))
-                all_outputs = torch.cat((all_outputs, outputs.flatten()))
+                all_outputs = outputs[0].flatten()
+
+
                 nb_total += len(labels)
                 nb_correct += int(torch.eq(outputs.flatten(), labels).sum())
     # accuracy
     accuracy = float(nb_correct / nb_total)
-    plot_uncertainty_predicted_value(all_inputs, network)
+    test_loss = running_loss / len(test_loader)
+    testset = torch.load(settings.test_moon_dataset_location)
+    actual_values = testset.tensors[1] 
+    if network_type == 1:
+        all_outputs = network.infer(all_inputs.float(), 1000) 
+        uncertainty_values = all_outputs[1][1].detach().numpy()
+        mean_values = all_outputs[1][0].detach().numpy()
+
+        vmin_uncertainty = np.min(uncertainty_values)
+        vmax_uncertainty = np.max(uncertainty_values)
+
+        vmin_mean = np.min(mean_values)
+        vmax_mean = np.max(mean_values)
+
+        plot_uncertainty_predicted_value(all_inputs, network)
+
+    elif network_type == 2:
+        all_outputs = torch.sigmoid(network(all_inputs)).detach().numpy() 
+        vmin_value = np.min(all_outputs)
+        vmax_value = np.max(all_outputs)
+
+        plot_output_and_training_data(test_dataset, network)
+
+
     logger.info("mean accuracy: " + str(accuracy))
-    return accuracy
+    return accuracy, test_loss

@@ -49,7 +49,7 @@ class Linear(nn.Module):
 
     def __init__(self, in_features: int, out_features: int, bias: bool = True, LRS=2e3, HRS=10e3, a_prog=-6.24e-4,
                  b_prog=0.691, offset_mean=-0.589, offset_std=0.339, failure_mean_LRS=5.73e-4, failure_std_LRS=9.9e-5,
-                 ratio_failure_LRS=0.005, ratio_failure_HRS=0.005, pi=0.5, prior_sigma1=5, prior_sigma2=5,
+                 ratio_failure_LRS=0.00, ratio_failure_HRS=0.00, pi=0.5, prior_sigma1=5, prior_sigma2=5,
                  min_conductance=((1 / 1e5) * 1e6),
                  scheme="DoubleColumn", device=None, dtype=None) -> None:
         """
@@ -226,12 +226,9 @@ class Linear(nn.Module):
         self.w_offset = w_off_sampler.sample()
         # Programming offset, variability + adjacent effect step
         offset_pos = (self.w_offset * cond_w_pos) / 100
-        cond_w_pos = np.add(cond_w_pos, offset_pos)
-
         self.w_offset = w_off_sampler.sample()
         # Programming offset, variability + adjacent effect step
         offset_neg = (self.w_offset * cond_w_neg) / 100
-        cond_w_neg = np.add(cond_w_neg, offset_neg)
         self.w_offset = w_off_sampler.loc * (cond_w_pos / 100 - cond_w_neg / 100) * ((
                                                                                              weight.max() - weight.min()) / (
                                                                                              self.max_cond - self.min_cond)).detach()
@@ -244,13 +241,21 @@ class Linear(nn.Module):
         offset_sigma_p = self.offset_std / 100 * cond_w_pos  # get the offset sigma in conductance value
         offset_sigma_n = self.offset_std / 100 * cond_w_neg
 
-        cond_w_pos = np.add(cond_w_pos, sigma_p * w_sampler.sample())  # reparametrization trick
+        # Conductance tuning imprecision
+        # cond_w_pos = np.add(cond_w_pos, offset_pos)
+        # cond_w_neg = np.add(cond_w_neg, offset_neg)
+        # Conductance tuning imprecision
+
+        # Biasing scheme effect 
+        cond_w_pos = np.add(cond_w_pos, sigma_p * w_sampler.sample().numpy())  # reparametrization trick
         cond_w_pos = np.add(cond_w_pos, adj_p)
 
-        cond_w_neg = np.add(cond_w_neg, sigma_n * w_sampler.sample())  # reparametrization trick
+        cond_w_neg = np.add(cond_w_neg, sigma_n * w_sampler.sample().numpy())  # reparametrization trick
         cond_w_neg = np.add(cond_w_neg, adj_n)
+        # Biasing scheme effect 
 
-        # ======== Substitution step by failed devices ======== #
+    # ======== Substitution step by failed devices ======== #
+    # HRS/LRS device failure 
         if self.ratio_failure_LRS != 0 or self.ratio_failure_HRS != 0:  # avoid division by 0
             hrs_mask_pos = torch.FloatTensor(weight.shape).uniform_() <= self.ratio_failure_HRS / (
                     self.ratio_failure_LRS + self.ratio_failure_HRS)
@@ -285,6 +290,7 @@ class Linear(nn.Module):
             cond_w_neg[lrs_mask_neg] = w_failure_sampler.sample()[lrs_mask_neg] * 1e6
             cond_w_neg[hrs_mask_neg] = ((self.max_HRS_conductance - self.min_conductance) * torch.rand(weight.shape)[
                 hrs_mask_neg] + self.min_conductance)
+    # HRS/LRS device failure 
         if sigma_resh:  # to reshape the sigma
             w_global = cond_w_pos - cond_w_neg
             if settings.elbo:
@@ -575,7 +581,11 @@ class Linear(nn.Module):
             new_bias = self.bias
         else:
             self.kld = 0  # RESET kullback leibler divergence
+
+            # Biasing scheme effect
             self.sample_adj_effect_offsets()  # sample random offsets due to neighbour programming before hand
+            # Biasing scheme effect
+
             # ====== weight forward =======
             new_weight, self.mask_w_weight, sc_w = self.w_forward(self.weight, self.w_scaler, self.w_scaler_dc,
                                                                   self.w_offset_sampler, self.w_sampler,
