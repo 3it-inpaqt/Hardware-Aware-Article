@@ -57,7 +57,7 @@ class Settings:
     # All neural network parameters:
     choice: int = 1
     # The number of training epoch.
-    nb_epoch: int = 100
+    nb_epoch: int = 10000
     elbo: bool = False
     adj_sigma: bool = False
     bbyb: bool = False
