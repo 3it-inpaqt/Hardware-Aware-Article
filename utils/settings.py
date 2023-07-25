@@ -57,7 +57,7 @@ class Settings:
     # All neural network parameters:
     choice: int = 1
     # The number of training epoch.
-    nb_epoch: int = 2000
+    nb_epoch: int = 100
     elbo: bool = False
     adj_sigma: bool = False
     bbyb: bool = False
@@ -88,8 +88,8 @@ class Settings:
     overwrite_pretrained_bayesian: bool = True
     folder = Path(os.getcwd(), "trained_networks")
     pretrained_address_dict = {
-        1: Path(folder, "Hardaware_1689193130947455.pt"),
-        2: Path(folder, "FeedForward_1689189403889284.pt"),
+        1: Path(folder, "A.pt"),
+        2: Path(folder, "B.pt"),
         3: Path(folder, "Hardaware_1689015691928564.pt"),
     }
     pretrained_address = pretrained_address_dict[choice]

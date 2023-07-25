@@ -58,14 +58,10 @@ class Hardaware_FeedForward(nn.Module):
         """
         x = self.dropout(x)
         x = torch.sigmoid(self.fc1(x))
-        # x = x + self.epsilon * torch.randn(x.shape) 
-        # if training:  # Add noise only during training
-        #     x = x + self.epsilon * torch.randn(x.shape).to(x.device)  # Ensure the noise tensor is on the same device as x
+
         x = self.dropout(x)
         x = self.fc2(x)
-        # x = x + self.epsilon * torch.randn(x.shape)
-        # if training:  # Add noise only during training
-        #     x = x + self.epsilon * torch.randn(x.shape).to(x.device)  # Ensure the noise tensor is on the same device as x
+
         return x
 
     def infer(self, inputs, nb_samples: int = 10):
@@ -76,11 +72,21 @@ class Hardaware_FeedForward(nn.Module):
         :return: The class inferred by this method and the confidence it this result (between 0 and 1).
         """
         # Prediction samples
+        # print("Before inference:")
+        # print("fc1 weight:", self.fc1.weight)
+        # print("fc1 bias:", self.fc1.bias)
+        # print("fc2 weight:", self.fc2.weight)
+        # print("fc2 bias:", self.fc2.bias)
         self.fc1.no_variability = False
         self.fc2.no_variability = False
         # Use sigmoid to convert the output into probability (during the training it's done inside BCEWithLogitsLoss)
         outputs_bef = [torch.sigmoid(self(inputs)) for _ in range(nb_samples)]
         outputs = torch.stack(outputs_bef)
+        # print("After inference:")
+        # print("fc1 weight:", self.fc1.weight)
+        # print("fc1 bias:", self.fc1.bias)
+        # print("fc2 weight:", self.fc2.weight)
+        # print("fc2 bias:", self.fc2.bias)
         # Compute the mean, std
 
         all_equal = []

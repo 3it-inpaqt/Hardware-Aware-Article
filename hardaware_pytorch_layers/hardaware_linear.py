@@ -9,7 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 from torch import Tensor
 from torch.nn import functional as f
 from torch.nn.parameter import Parameter
-
+from utils.logger import logger
 from utils.settings import settings
 
 
@@ -49,7 +49,7 @@ class Linear(nn.Module):
 
     def __init__(self, in_features: int, out_features: int, bias: bool = True, LRS=2e3, HRS=10e3, a_prog=-6.24e-4,
                  b_prog=0.691, offset_mean=-0.589, offset_std=0.339, failure_mean_LRS=5.73e-4, failure_std_LRS=9.9e-5,
-                 ratio_failure_LRS=0.00, ratio_failure_HRS=0.00, pi=0.5, prior_sigma1=5, prior_sigma2=5,
+                 ratio_failure_LRS=0.005, ratio_failure_HRS=0.005, pi=0.5, prior_sigma1=5, prior_sigma2=5,
                  min_conductance=((1 / 1e5) * 1e6),
                  scheme="DoubleColumn", device=None, dtype=None) -> None:
         """
@@ -242,8 +242,8 @@ class Linear(nn.Module):
         offset_sigma_n = self.offset_std / 100 * cond_w_neg
 
         # Conductance tuning imprecision
-        # cond_w_pos = np.add(cond_w_pos, offset_pos)
-        # cond_w_neg = np.add(cond_w_neg, offset_neg)
+        cond_w_pos = np.add(cond_w_pos, offset_pos)
+        cond_w_neg = np.add(cond_w_neg, offset_neg)
         # Conductance tuning imprecision
 
         # Biasing scheme effect 
@@ -588,18 +588,22 @@ class Linear(nn.Module):
 
             # ====== weight forward =======
             new_weight, self.mask_w_weight, sc_w = self.w_forward(self.weight, self.w_scaler, self.w_scaler_dc,
-                                                                  self.w_offset_sampler, self.w_sampler,
-                                                                  self.w_failure_sampler, self.adj_off_w_p,
-                                                                  self.adj_off_w_n,
-                                                                  self.adj_s_w_squared, self.prior_dist_w_1,
-                                                                  self.prior_dist_w_2)
+                                                                self.w_offset_sampler, self.w_sampler,
+                                                                self.w_failure_sampler, self.adj_off_w_p,
+                                                                self.adj_off_w_n,
+                                                                self.adj_s_w_squared, self.prior_dist_w_1,
+                                                                self.prior_dist_w_2)
+            # print("New weight:", new_weight)
+
             # ====== bias forward =======
             new_bias, self.mask_w_bias, sc_b = self.w_forward(self.bias, self.b_scaler, self.b_scaler_dc,
-                                                              self.b_offset_sampler, self.b_sampler,
-                                                              self.b_failure_sampler, self.adj_off_b_p,
-                                                              self.adj_off_b_n,
-                                                              self.adj_s_b_squared, self.prior_dist_b_1,
-                                                              self.prior_dist_b_2)
+                                                            self.b_offset_sampler, self.b_sampler,
+                                                            self.b_failure_sampler, self.adj_off_b_p,
+                                                            self.adj_off_b_n,
+                                                            self.adj_s_b_squared, self.prior_dist_b_1,
+                                                            self.prior_dist_b_2)
+            # print("New bias:", new_bias)
+
         return f.linear(input, new_weight, new_bias)  # perform Linear layer operation
 
     def w_forward(self, weight, w_scaler, w_scaler_dc, w_offset_sampler, w_sampler, LRS_failure_sampler, adj_off_p,

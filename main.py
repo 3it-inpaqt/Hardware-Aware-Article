@@ -21,7 +21,7 @@ network_type_dict = {"HANN": 1, "Modified HANN": 2}  # New dictionary to map net
 torch_device = torch.device("cpu")
 
 # Number of simulations
-n_simulations = 1000
+n_simulations = 10
 
 # Placeholder for accuracies and min_accuracies
 accuracies = {"HANN": [], "Modified HANN": []}
@@ -52,7 +52,7 @@ def main():
         network.to(torch_device)
 
         # Pass network type to train_standard and test_standard
-        train_standard(network, trainset, testset, validationset, torch_device, network_type)
+        # train_standard(network, trainset, testset, validationset, torch_device, network_type)
 
     compare_networks(criterion, testset)
 
@@ -81,13 +81,13 @@ def compare_networks(criterion, testset):
             hann.fc2.bias = nn.fc2.bias
 
         # Test the original HANN
-        network = hann.to(torch_device)
+        network = hann_cpy.to(torch_device)
         acc, _ = test_standard(network, testset, torch_device, criterion, test_name='', network_type=1)
         accuracies["HANN"].append(acc)
         min_accuracies["HANN"].append(min(accuracies["HANN"]))
 
         # Test the modified HANN
-        network = hann_cpy.to(torch_device)
+        network = hann.to(torch_device)
         acc, _ = test_standard(network, testset, torch_device, criterion, test_name='', network_type=1)
         accuracies["Modified HANN"].append(acc)
         min_accuracies["Modified HANN"].append(min(accuracies["Modified HANN"]))
