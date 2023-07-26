@@ -64,7 +64,7 @@ class Hardaware_FeedForward(nn.Module):
 
         return x
 
-    def infer(self, inputs, nb_samples: int = 10):
+    def infer(self, inputs, nb_samples: int = 1):
         """
         Use network inference for classification a set of input.
         :param inputs: The inputs to classify.
@@ -73,20 +73,22 @@ class Hardaware_FeedForward(nn.Module):
         """
         # Prediction samples
         # print("Before inference:")
-        # print("fc1 weight:", self.fc1.weight)
-        # print("fc1 bias:", self.fc1.bias)
-        # print("fc2 weight:", self.fc2.weight)
-        # print("fc2 bias:", self.fc2.bias)
+        # print("fc1 weight sum:", torch.sum(self.fc1.weight.cpu()))
+        # print("fc1 bias sum:", torch.sum(self.fc1.bias.cpu()))
+        # print("fc2 weight sum:", torch.sum(self.fc2.weight.cpu()))
+        # print("fc2 bias sum:", torch.sum(self.fc2.bias.cpu()))
+
         self.fc1.no_variability = False
         self.fc2.no_variability = False
         # Use sigmoid to convert the output into probability (during the training it's done inside BCEWithLogitsLoss)
         outputs_bef = [torch.sigmoid(self(inputs)) for _ in range(nb_samples)]
         outputs = torch.stack(outputs_bef)
         # print("After inference:")
-        # print("fc1 weight:", self.fc1.weight)
-        # print("fc1 bias:", self.fc1.bias)
-        # print("fc2 weight:", self.fc2.weight)
-        # print("fc2 bias:", self.fc2.bias)
+        # print("fc1 weight sum:", torch.sum(self.fc1.weight.cpu()))
+        # print("fc1 bias sum:", torch.sum(self.fc1.bias.cpu()))
+        # print("fc2 weight sum:", torch.sum(self.fc2.weight.cpu()))
+        # print("fc2 bias sum:", torch.sum(self.fc2.bias.cpu()))
+
         # Compute the mean, std
 
         all_equal = []

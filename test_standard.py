@@ -79,7 +79,7 @@ def test_standard(network: Module, test_dataset: Dataset, device: torch.device, 
         vmin_mean = np.min(mean_values)
         vmax_mean = np.max(mean_values)
 
-        plot_uncertainty_predicted_value(all_inputs, network)
+        # plot_uncertainty_predicted_value(all_inputs, network)
 
     elif network_type == 2:
         all_outputs = torch.sigmoid(network(all_inputs)).detach().numpy() 
@@ -91,3 +91,24 @@ def test_standard(network: Module, test_dataset: Dataset, device: torch.device, 
 
     logger.info("mean accuracy: " + str(accuracy))
     return accuracy, test_loss
+
+from tqdm import tqdm
+
+def test_individual(network: Module, test_dataset: Dataset, device: torch.device, network_type: int, n_simulations: int = 10):
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
+    correct = {i: 0 for i in range(len(test_dataset))}  # A dictionary to store the number of correct predictions for each data point
+    total = {i: 0 for i in range(len(test_dataset))}  # A dictionary to store the total number of predictions for each data point
+    with torch.no_grad():
+        for i in tqdm(range(n_simulations)):  # For each simulation
+            for j, (inputs, labels) in enumerate(test_loader):  # For each data point in the batch
+                outputs = network(inputs.to(device))
+                if network_type == 1:  # If it's a Bayesian network
+                    prediction = network.infer(inputs.to(device), settings.bayesian_nb_sample)[0]
+                else:
+                    prediction = torch.round(torch.sigmoid(outputs))
+                total[j] += 1
+                if prediction == labels.to(device):  # If the prediction is correct
+                    correct[j] += 1
+    # Calculate the relative accuracy for each data point
+    relative_accuracies = {i: correct[i] / total[i] for i in range(len(test_dataset))}
+    return relative_accuracies

@@ -57,14 +57,14 @@ class Settings:
     # All neural network parameters:
     choice: int = 1
     # The number of training epoch.
-    nb_epoch: int = 10000
+    nb_epoch: int = 100
     elbo: bool = False
     adj_sigma: bool = False
     bbyb: bool = False
     # The size of the mini-batch for the training and testing.
     batch_size: int = 256
     # The learning rate value used by the SGD for parameters update.
-    learning_rate: float = 0.01
+    learning_rate: float = 0.1
     HRS_failure_rate: float = 0.005
     LRS_failure_rate: float = 0.005
     # ==================================================================================================================
@@ -88,8 +88,8 @@ class Settings:
     overwrite_pretrained_bayesian: bool = True
     folder = Path(os.getcwd(), "trained_networks")
     pretrained_address_dict = {
-        1: Path(folder, "A.pt"),
-        2: Path(folder, "B.pt"),
+        1: Path(folder, "Hardaware_SAF_BSE_CTI.pt"),
+        2: Path(folder, "FeedForward_Vanilla.pt"),
         3: Path(folder, "Hardaware_1689015691928564.pt"),
     }
     pretrained_address = pretrained_address_dict[choice]

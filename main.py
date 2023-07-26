@@ -2,15 +2,16 @@ import os
 import torch
 import copy
 import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
 from pathlib import Path
 from datetime import datetime
-
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 from dataset.moon_dataset import generate_moon
 from networks.feed_forward import FeedForward
 from networks.hardaware_feed_forward import Hardaware_FeedForward
-from plots.misc import plot_fn
 from test_standard import test_standard
+from test_standard import test_individual
 from train_standard import train_standard
 from utils.logger import logger
 from utils.settings import settings
@@ -20,110 +21,122 @@ name_network_dict = {1: "Hardaware", 2: "FeedForward"}
 network_type_dict = {"HANN": 1, "Modified HANN": 2}  # New dictionary to map network names to types
 torch_device = torch.device("cpu")
 
-# Number of simulations
-n_simulations = 10
+def count_accuracies(acc_dict):
+    # Define accuracy ranges
+    ranges = [(0.95, 1.01), (0.9, 0.95), (0.8, 0.9), (0.7, 0.8), (0.6, 0.7), (0.5, 0.6), (0, 0.5)]
+    
+    # Initialize counts dictionary
+    counts_dict = {r: 0 for r in ranges}
+    
+    # Count accuracies in each range
+    for acc in acc_dict.values():
+        for r in ranges:
+            if r[0] <= acc < r[1]:  # No need to multiply by 100 since the accuracy is already in decimal form
+                counts_dict[r] += 1
+                break  # Break the loop once the correct range is found
+                
+    return counts_dict
 
-# Placeholder for accuracies and min_accuracies
-accuracies = {"HANN": [], "Modified HANN": []}
-min_accuracies = {"HANN": [], "Modified HANN": []}  # Store all minimum accuracies for each simulation
+def create_table(counts_dict, total):
+    # Create DataFrame
+    df = pd.DataFrame(columns=['Percentage of simulated networks that correctly classify the datapoints(%)', '#data points'])
+    
+    # Fill DataFrame
+    for r in sorted(counts_dict.keys(), reverse=True):
+        row_name = f"{int(r[0]*100)} ≤ x < {int(r[1]*100)}"
+        df.loc[row_name] = [counts_dict[r], f"{counts_dict[r]} ({counts_dict[r]/total*100:.1f}%)"]
+        
+    # Add total row
+    df.loc['Total'] = [total, f"{total} (100%)"]
+    
+    return df
 
 def main():
-    now = datetime.now()
-    timestamp = datetime.timestamp(now)
-    if settings.generate_new_moon:  # If we want to generate a new moon
-        trainset, testset, validationset = generate_moon()
-        torch.save(trainset, settings.train_moon_dataset_location)
-        torch.save(testset, settings.test_moon_dataset_location)
-        torch.save(validationset, settings.validation_moon_dataset_location)
-    else:  # Loading the dataset
-        trainset = torch.load(settings.train_moon_dataset_location)
-        testset = torch.load(settings.test_moon_dataset_location)
-        validationset = torch.load(settings.validation_moon_dataset_location)
-
+    
+    trainset = torch.load(settings.train_moon_dataset_location)
+    testset = torch.load(settings.test_moon_dataset_location)
     settings.bayesian_complexity_cost_weight = 1 / (trainset.__len__())
-
-    for network_type in [1, 2]:  # for both HANN and NN
-        logger.info("Selected network: " + name_network_dict[network_type])
-        criterion = torch.nn.BCEWithLogitsLoss()  # Define criterion outside of the if-statement
-        if network_type == 1:
-            network = network_dict[network_type](2, 1, elbo=settings.elbo)
-        else:
-            network = network_dict[network_type](2, 1)
-        network.to(torch_device)
-
-        # Pass network type to train_standard and test_standard
-        # train_standard(network, trainset, testset, validationset, torch_device, network_type)
-
+    criterion = torch.nn.BCEWithLogitsLoss()
     compare_networks(criterion, testset)
 
-    plot_cdf()
-
-def compare_networks(criterion, testset):
-    # Load the paths for each of the trained networks
-    nn_path = settings.pretrained_address_dict[2]
-    hann_path = settings.pretrained_address_dict[1]
-
-    # Load the NN and HANN
-    nn = torch.load(str(nn_path))
-    hann = torch.load(str(hann_path))
+def generate_cdf(counts_dict):
+    # Initialize dictionary for CDF
+    cdf_dict = {}
     
-    # Run the simulations
-    for _ in range(n_simulations):
-        # Create a copy of HANN
-        hann_cpy = torch.load(str(hann_path))
-
-        with torch.no_grad():
-            # Copy the weights and bias of the first fully-connected layer from NN to HANN
-            hann.fc1.weight = nn.fc1.weight
-            hann.fc1.bias = nn.fc1.bias
-            # Copy the weights and bias of the second fully-connected layer from NN to HANN
-            hann.fc2.weight = nn.fc2.weight
-            hann.fc2.bias = nn.fc2.bias
-
-        # Test the original HANN
-        network = hann_cpy.to(torch_device)
-        acc, _ = test_standard(network, testset, torch_device, criterion, test_name='', network_type=1)
-        accuracies["HANN"].append(acc)
-        min_accuracies["HANN"].append(min(accuracies["HANN"]))
-
-        # Test the modified HANN
-        network = hann.to(torch_device)
-        acc, _ = test_standard(network, testset, torch_device, criterion, test_name='', network_type=1)
-        accuracies["Modified HANN"].append(acc)
-        min_accuracies["Modified HANN"].append(min(accuracies["Modified HANN"]))
-
-    return accuracies
-
-def plot_cdf():
-    bins = sorted([100, 95, 90, 80, 70, 60, 50, 0])  # the boundaries for the accuracy ranges
-    bin_labels = ['100', '95 ≤ x < 100', '90 ≤ x < 95', '80 ≤ x < 90', '70 ≤ x < 80', '60 ≤ x < 70', '50 ≤ x < 60', 'x < 50']
-    table = {label: {name: 0 for name in name_network_dict.values()} for label in bin_labels}  # initialize table
-
-    for network_name, min_acc_list in min_accuracies.items():
-        print(f"Min accuracies for {network_name}: {min_acc_list}")
-        values, base = np.histogram(min_acc_list, bins=10)
-        cumulative = np.cumsum(values)
-        plt.plot(base[:-1], cumulative, label=name_network_dict[network_type_dict[network_name]])  # Use network_type_dict to map name to type
-
-        # calculate the number of simulations falling within each accuracy range
-        counts, _ = np.histogram(min_acc_list, bins=bins)
-        cumulative = np.cumsum(counts[::-1])[::-1]  # Flip counts to get the right order for cumsum, then flip back
-        cumulative = cumulative / cumulative[0] * 100  # Normalize to the total number of networks
+    # Generate CDF
+    total = sum(counts_dict.values())
+    cumulative_count = 0
+    for r in sorted(counts_dict.keys(), reverse=True):
+        midpoint = (r[0] + r[1]) / 2  # Use midpoint of range as accuracy
+        cumulative_count += counts_dict[r]
+        cdf_dict[midpoint] = cumulative_count / total * 100  # Multiply by 100 to get percentage
         
-        plt.plot(bins[:-1], cumulative, label=network_name)  # Removed the usage of network_type_dict
+    return cdf_dict
 
-        for label, count in zip(bin_labels, counts):
-            table[label][name_network_dict[network_type_dict[network_name]]] = count  # Use network_type_dict to map name to type
+def plot_cdf(cdf_dict):
+    plt.figure(figsize=(10, 7))
+    for network_type, cdf in cdf_dict.items():
+        # Add (100%, 0%) to the cdf
+        cdf = {1.0: 0, **cdf}
+        x = [r * 100 for r in cdf.keys()] 
+        y = list(cdf.values())
+        plt.plot(x, y, label=network_type, linewidth=2, alpha=0.7)
 
-    plt.legend()
+    plt.title('Comparaison of the minimal accuracy over n simulated transfers achievable for the test set', fontsize=15)
+    plt.ylabel('Teset Properly classified (%)', fontsize=12)
+    plt.xlabel('Transfered networks (%)', fontsize=12)
+    plt.legend(loc='lower right')
+    plt.grid(True)
+    plt.ylim([0, 100])  # Adjust y-axis limits
+    plt.xlim([60, 105])  # Adjust x-axis limits
+    plt.gca().yaxis.set_major_formatter(mticker.PercentFormatter()) 
     plt.show()
 
-    # print table
-    print("Relative accuracies of every data point in the test set over {} simulated transfers:".format(n_simulations))
-    print("Percentage of simulated networks that correctly classify the datapoints(%):")
-    print("\t\t\t", "\t".join(name_network_dict.values()))
-    for label, counts in table.items():
-        print(label, "\t", "\t".join(str(count) + " (" + str(round(count / n_simulations * 100, 1)) + "%)" for count in counts.values()))
+def compare_networks(criterion, testset):
+    testset = torch.load(settings.test_moon_dataset_location)
+    # Load the paths for each of the trained networks
+    hann_path = settings.pretrained_address_dict[1]
+    nn_path = settings.pretrained_address_dict[2]
+
+    # Load the HANN and NN
+    hann = torch.load(str(hann_path))
+    nn = torch.load(str(nn_path))
+    # Create a copy of HANN
+    hann_cpy = copy.deepcopy(hann)
+    testset = torch.load(settings.test_moon_dataset_location)
+    with torch.no_grad():
+        # Copy the weights and bias of the first fully-connected layer from NN to HANN
+        hann_cpy.fc1.weight = nn.fc1.weight
+        hann_cpy.fc1.bias = nn.fc1.bias
+        # Copy the weights and bias of the second fully-connected layer from NN to HANN
+        hann_cpy.fc2.weight = nn.fc2.weight
+        hann_cpy.fc2.bias = nn.fc2.bias
+
+    # Test the original HANN
+    network = hann.to(torch_device)
+    hann_acc = test_individual(network, testset, torch_device, network_type=1)  
+    # Count HANN accuracies
+    hann_counts = count_accuracies(hann_acc)
+    
+    # Test the modified HANN (which is now a NN)
+    network = hann_cpy.to(torch_device)
+    hann_mod_acc = test_individual(network, testset, torch_device, network_type=1)   
+    # Count modified HANN accuracies
+    hann_mod_counts = count_accuracies(hann_mod_acc)
+    
+    # Create tables
+    hann_table = create_table(hann_counts, len(testset))
+    hann_mod_table = create_table(hann_mod_counts, len(testset))
+    
+    # Print tables
+    print("HANN table:\n", hann_table)
+    print("\nModified HANN table:\n", hann_mod_table)
+    # Generate CDFs
+    hann_cdf = generate_cdf(hann_counts)
+    hann_mod_cdf = generate_cdf(hann_mod_counts)
+    
+    # Plot CDFs
+    plot_cdf({"HANN": hann_cdf, "Modified HANN": hann_mod_cdf})
 
 if __name__ == '__main__':
     main()

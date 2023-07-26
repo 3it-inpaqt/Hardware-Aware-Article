@@ -593,8 +593,7 @@ class Linear(nn.Module):
                                                                 self.adj_off_w_n,
                                                                 self.adj_s_w_squared, self.prior_dist_w_1,
                                                                 self.prior_dist_w_2)
-            # print("New weight:", new_weight)
-
+            # print("New weight after w_forward:", new_weight)
             # ====== bias forward =======
             new_bias, self.mask_w_bias, sc_b = self.w_forward(self.bias, self.b_scaler, self.b_scaler_dc,
                                                             self.b_offset_sampler, self.b_sampler,
@@ -602,7 +601,7 @@ class Linear(nn.Module):
                                                             self.adj_off_b_n,
                                                             self.adj_s_b_squared, self.prior_dist_b_1,
                                                             self.prior_dist_b_2)
-            # print("New bias:", new_bias)
+            # print("New bias after w_forward:", new_bias)
 
         return f.linear(input, new_weight, new_bias)  # perform Linear layer operation
 
