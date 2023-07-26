@@ -107,6 +107,11 @@ def plot_cdf():
 
         # calculate the number of simulations falling within each accuracy range
         counts, _ = np.histogram(min_acc_list, bins=bins)
+        cumulative = np.cumsum(counts[::-1])[::-1]  # Flip counts to get the right order for cumsum, then flip back
+        cumulative = cumulative / cumulative[0] * 100  # Normalize to the total number of networks
+        
+        plt.plot(bins[:-1], cumulative, label=network_name)  # Removed the usage of network_type_dict
+
         for label, count in zip(bin_labels, counts):
             table[label][name_network_dict[network_type_dict[network_name]]] = count  # Use network_type_dict to map name to type
 
