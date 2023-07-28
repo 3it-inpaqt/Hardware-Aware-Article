@@ -49,7 +49,7 @@ class Linear(nn.Module):
 
     def __init__(self, in_features: int, out_features: int, bias: bool = True, LRS=2e3, HRS=10e3, a_prog=-6.24e-4,
                  b_prog=0.691, offset_mean=-0.589, offset_std=0.339, failure_mean_LRS=5.73e-4, failure_std_LRS=9.9e-5,
-                 ratio_failure_LRS=0.005, ratio_failure_HRS=0.00, pi=0.5, prior_sigma1=5, prior_sigma2=5,
+                 ratio_failure_LRS=0.005, ratio_failure_HRS=0.005, pi=0.5, prior_sigma1=5, prior_sigma2=5,
                  min_conductance=((1 / 1e5) * 1e6),
                  scheme="DoubleColumn", device=None, dtype=None) -> None:
         """
@@ -247,11 +247,11 @@ class Linear(nn.Module):
         # Conductance tuning imprecision
 
         # Biasing scheme effect 
-        # cond_w_pos = np.add(cond_w_pos, sigma_p * w_sampler.sample().numpy())  # reparametrization trick
-        # cond_w_pos = np.add(cond_w_pos, adj_p)
+        cond_w_pos = np.add(cond_w_pos, sigma_p * w_sampler.sample().numpy())  # reparametrization trick
+        cond_w_pos = np.add(cond_w_pos, adj_p)
 
-        # cond_w_neg = np.add(cond_w_neg, sigma_n * w_sampler.sample().numpy())  # reparametrization trick
-        # cond_w_neg = np.add(cond_w_neg, adj_n)
+        cond_w_neg = np.add(cond_w_neg, sigma_n * w_sampler.sample().numpy())  # reparametrization trick
+        cond_w_neg = np.add(cond_w_neg, adj_n)
         # Biasing scheme effect 
 
     # ======== Substitution step by failed devices ======== #
@@ -583,7 +583,7 @@ class Linear(nn.Module):
             self.kld = 0  # RESET kullback leibler divergence
 
             # Biasing scheme effect
-            # self.sample_adj_effect_offsets()  # sample random offsets due to neighbour programming before hand
+            self.sample_adj_effect_offsets()  # sample random offsets due to neighbour programming before hand
             # Biasing scheme effect
 
             # ====== weight forward =======

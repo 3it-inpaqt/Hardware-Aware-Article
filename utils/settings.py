@@ -88,9 +88,9 @@ class Settings:
     overwrite_pretrained_bayesian: bool = True
     folder = Path(os.getcwd(), "trained_networks")
     pretrained_address_dict = {
-        1: Path(folder, "Hardaware_SAF_BSE_CTI.pt"),
+        1: Path(folder, "Hardaware_SAF_LRS0.01.pt"),
         2: Path(folder, "FeedForward_Vanilla001.pt"),
-        3: Path(folder, "Hardaware_1689015691928564.pt"),
+        3: Path(folder, "Hardaware_SAF_HRS0.01.pt"),
     }
     pretrained_address = pretrained_address_dict[choice]
     train_moon_dataset_location = Path(os.getcwd(), "dataset", "train_moon_dataset.txt")

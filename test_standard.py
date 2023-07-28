@@ -98,7 +98,7 @@ def test_standard(network: Module, test_dataset: Dataset, device: torch.device, 
 
 from tqdm import tqdm
 
-def test_individual(network: Module, test_dataset: Dataset, device: torch.device, network_type: int, n_simulations: int = 100):
+def test_individual(network: Module, test_dataset: Dataset, device: torch.device, network_type: int, n_simulations: int = 1000):
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
     correct = {i: 0 for i in range(len(test_dataset))}  # A dictionary to store the number of correct predictions for each data point
     total = {i: 0 for i in range(len(test_dataset))}  # A dictionary to store the total number of predictions for each data point

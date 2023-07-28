@@ -37,18 +37,22 @@ def count_accuracies(acc_dict):
                 
     return counts_dict
 
-def create_table(counts_dict, total):
-    # Create DataFrame
-    df = pd.DataFrame(columns=['Percentage of simulated networks that correctly classify the datapoints(%)', '#data points'])
-    
-    # Fill DataFrame
-    for r in sorted(counts_dict.keys(), reverse=True):
-        row_name = f"{int(r[0]*100)} ≤ x < {int(r[1]*100)}"
-        df.loc[row_name] = [counts_dict[r], f"{counts_dict[r]} ({counts_dict[r]/total*100:.1f}%)"]
-        
-    # Add total row
-    df.loc['Total'] = [total, f"{total} (100%)"]
-    
+def create_table(hann_counts: dict, hann_mod_counts: dict, total: int):
+    # Create a DataFrame with the ranges as the index
+    df = pd.DataFrame(
+        {
+            "Range": [f"{low} ≤ x < {high}" for low, high in hann_counts.keys()],
+            "HANN Accuracies (%)": [f"{count} ({count / total * 100:.1f}%)" for count in hann_counts.values()],
+            "Modified HANN Accuracies (%)": [f"{count} ({count / total * 100:.1f}%)" for count in hann_mod_counts.values()]
+        }
+    )
+    df.set_index('Range', inplace=True)
+
+    # Add a total row
+    df.loc['Total'] = [
+        f"{sum(hann_counts.values())} (100%)",
+        f"{sum(hann_mod_counts.values())} (100%)"
+    ]
     return df
 
 def main():
@@ -97,9 +101,11 @@ def compare_networks(criterion, testset):
     # Load the paths for each of the trained networks
     hann_path = settings.pretrained_address_dict[1]
     nn_path = settings.pretrained_address_dict[2]
+    hann_path2 = settings.pretrained_address_dict[3]
 
     # Load the HANN and NN
     hann = torch.load(str(hann_path))
+    hann2 = torch.load(str(hann_path2))
     nn = torch.load(str(nn_path))
     # Create a copy of HANN
     hann_cpy = copy.deepcopy(hann)
@@ -119,24 +125,23 @@ def compare_networks(criterion, testset):
     hann_counts = count_accuracies(hann_acc)
     
     # Test the modified HANN (which is now a NN)
-    network = hann_cpy.to(torch_device)
+    network = hann2.to(torch_device)
     hann_mod_acc = test_individual(network, testset, torch_device, network_type=1)   
     # Count modified HANN accuracies
     hann_mod_counts = count_accuracies(hann_mod_acc)
     
     # Create tables
-    hann_table = create_table(hann_counts, len(testset))
-    hann_mod_table = create_table(hann_mod_counts, len(testset))
-    
-    # Print tables
-    print("HANN table:\n", hann_table)
-    print("\nNN table:\n", hann_mod_table)
+    table = create_table(hann_counts, hann_mod_counts, len(testset))
+        
+    # Print table
+    print("Accuracies Table:\n", table)
+
     # Generate CDFs
     hann_cdf = generate_cdf(hann_counts)
     hann_mod_cdf = generate_cdf(hann_mod_counts)
     
     # Plot CDFs
-    plot_cdf({"HANN": hann_cdf, "Modified HANN": hann_mod_cdf})
+    plot_cdf({"HANN_LRS": hann_cdf, "HANN_HRS": hann_mod_cdf})
 
 if __name__ == '__main__':
     main()
