@@ -23,6 +23,7 @@ class Hardaware_FeedForward(nn.Module):
         :param input_size: The size of one item of the dataset used for the training
         :param nb_classes: Number of class to classify
         """
+        self.epsilon = 0.01
         super().__init__()
         self.bayesian_nb_sample = settings.bayesian_nb_sample  # number of samples for the training if the bayesian averaging the loss approach is taken
         self.fc1 = Linear(input_size, settings.hidden_layers_size[0])  # Input -> Hidden 1
@@ -57,11 +58,13 @@ class Hardaware_FeedForward(nn.Module):
         """
         x = self.dropout(x)
         x = torch.sigmoid(self.fc1(x))
+
         x = self.dropout(x)
         x = self.fc2(x)
+
         return x
 
-    def infer(self, inputs, nb_samples: int = 10):
+    def infer(self, inputs, nb_samples: int = 1):
         """
         Use network inference for classification a set of input.
         :param inputs: The inputs to classify.
@@ -69,11 +72,23 @@ class Hardaware_FeedForward(nn.Module):
         :return: The class inferred by this method and the confidence it this result (between 0 and 1).
         """
         # Prediction samples
+        # print("Before inference:")
+        # print("fc1 weight sum:", torch.sum(self.fc1.weight.cpu()))
+        # print("fc1 bias sum:", torch.sum(self.fc1.bias.cpu()))
+        # print("fc2 weight sum:", torch.sum(self.fc2.weight.cpu()))
+        # print("fc2 bias sum:", torch.sum(self.fc2.bias.cpu()))
+
         self.fc1.no_variability = False
         self.fc2.no_variability = False
         # Use sigmoid to convert the output into probability (during the training it's done inside BCEWithLogitsLoss)
         outputs_bef = [torch.sigmoid(self(inputs)) for _ in range(nb_samples)]
         outputs = torch.stack(outputs_bef)
+        # print("After inference:")
+        # print("fc1 weight sum:", torch.sum(self.fc1.weight.cpu()))
+        # print("fc1 bias sum:", torch.sum(self.fc1.bias.cpu()))
+        # print("fc2 weight sum:", torch.sum(self.fc2.weight.cpu()))
+        # print("fc2 bias sum:", torch.sum(self.fc2.bias.cpu()))
+
         # Compute the mean, std
 
         all_equal = []
@@ -135,6 +150,38 @@ class Hardaware_FeedForward(nn.Module):
                 layer.bias[layer.mask_w_bias] = no_grad_values[i][1].detach()
                 i += 1
         return loss
+
+    def validation_step(self, inputs: Any, labels: Any):
+        """
+        Define the logic for one validation step.
+
+        :param inputs: The input from the validation dataset, could be a batch or an item
+        :param labels: The label of the item or the batch
+        :return: The validation loss value
+        """
+        # Forward only
+        with torch.no_grad():
+            losses = []
+            loss = 0
+            for i in range(self.bayesian_nb_sample):
+                outputs = self(inputs, True)
+                self.p_layers = [self.fc1.mask_w, self.fc1.mask_b, self.fc2.mask_w, self.fc2.mask_b]
+                try:
+                    loss = self._criterion(outputs.squeeze(), labels)
+                except:
+                    continue
+                kld = 0  # Kullback Leibler Divergence term
+                if self.elbo:
+                    for layer in self.layers:
+                        kld += layer.kld
+                    elbo = loss + settings.bayesian_complexity_cost_weight * kld
+                    loss = elbo
+                losses.append(loss)
+            if settings.bayesian_nb_sample > 1:
+                for i in range(len(losses) - 1):
+                    loss += losses[i]
+                loss = loss / settings.bayesian_nb_sample
+            return loss
 
     def get_hook(self, bit_map):
         def hook(grad):
