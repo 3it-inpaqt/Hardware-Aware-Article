@@ -76,16 +76,16 @@ def generate_cdf(counts_dict):
 def plot_cdf(cdf_dict):
     plt.figure(figsize=(10, 7))
     for network_type, cdf in cdf_dict.items():
-        # Add (100%, 0%) to the cdf
         cdf = {1.0: 0, **cdf}
         x = [r * 100 for r in cdf.keys()] 
         y = list(cdf.values())
         plt.plot(x, y, label=network_type, linewidth=2, alpha=0.7)
+        plt.scatter(x, y)
 
     plt.title('Comparaison of the minimal accuracy over n simulated transfers achievable for the test set', fontsize=15)
     plt.ylabel('Teset Properly classified (%)', fontsize=12)
     plt.xlabel('Transfered networks (%)', fontsize=12)
-    plt.legend(loc='lower right')
+    plt.legend(loc='lower left')
     plt.grid(True)
     plt.ylim([0, 100])  # Adjust y-axis limits
     plt.xlim([60, 105])  # Adjust x-axis limits
@@ -130,7 +130,7 @@ def compare_networks(criterion, testset):
     
     # Print tables
     print("HANN table:\n", hann_table)
-    print("\nModified HANN table:\n", hann_mod_table)
+    print("\nNN table:\n", hann_mod_table)
     # Generate CDFs
     hann_cdf = generate_cdf(hann_counts)
     hann_mod_cdf = generate_cdf(hann_mod_counts)

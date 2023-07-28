@@ -6,6 +6,8 @@ from typing import Tuple
 from utils.settings import settings
 from plots.misc import plot_uncertainty_predicted_value
 from plots.misc import plot_output_and_training_data
+from plots.misc import plot_combined
+from plots.misc import plot_combined_3d
 from utils.logger import logger
 from utils.settings import settings
 from utils.timer import SectionTimer
@@ -79,7 +81,9 @@ def test_standard(network: Module, test_dataset: Dataset, device: torch.device, 
         vmin_mean = np.min(mean_values)
         vmax_mean = np.max(mean_values)
 
-        # plot_uncertainty_predicted_value(all_inputs, network)
+        plot_uncertainty_predicted_value(all_inputs, network)
+        # plot_combined(all_inputs, network)
+        # plot_combined_3d(all_inputs, network)
 
     elif network_type == 2:
         all_outputs = torch.sigmoid(network(all_inputs)).detach().numpy() 
@@ -94,7 +98,7 @@ def test_standard(network: Module, test_dataset: Dataset, device: torch.device, 
 
 from tqdm import tqdm
 
-def test_individual(network: Module, test_dataset: Dataset, device: torch.device, network_type: int, n_simulations: int = 10):
+def test_individual(network: Module, test_dataset: Dataset, device: torch.device, network_type: int, n_simulations: int = 100):
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
     correct = {i: 0 for i in range(len(test_dataset))}  # A dictionary to store the number of correct predictions for each data point
     total = {i: 0 for i in range(len(test_dataset))}  # A dictionary to store the total number of predictions for each data point

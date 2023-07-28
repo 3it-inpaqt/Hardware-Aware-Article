@@ -57,7 +57,7 @@ class Settings:
     # All neural network parameters:
     choice: int = 1
     # The number of training epoch.
-    nb_epoch: int = 100
+    nb_epoch: int = 10000
     elbo: bool = False
     adj_sigma: bool = False
     bbyb: bool = False
@@ -89,7 +89,7 @@ class Settings:
     folder = Path(os.getcwd(), "trained_networks")
     pretrained_address_dict = {
         1: Path(folder, "Hardaware_SAF_BSE_CTI.pt"),
-        2: Path(folder, "FeedForward_Vanilla.pt"),
+        2: Path(folder, "FeedForward_Vanilla001.pt"),
         3: Path(folder, "Hardaware_1689015691928564.pt"),
     }
     pretrained_address = pretrained_address_dict[choice]

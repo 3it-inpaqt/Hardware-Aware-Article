@@ -294,7 +294,6 @@ def plot_output_and_training_data(train_dataset, network):
     plt.ylim([0, 1])
     plt.show(block=True)
 
-
 def plot_uncertainty_predicted_value(all_inputs, network):
     l = 1  # limit
     grid = np.mgrid[-l:l:200j, -l:l:200j]
@@ -315,89 +314,120 @@ def plot_uncertainty_predicted_value(all_inputs, network):
 
     # Uncertainty plot
     fig, ax = plt.subplots(figsize=(16, 9))
-    contour = ax.contourf(grid[0], grid[1], uncertainty_values, cmap=cmap, vmin=vmin_uncertainty, vmax=vmax_uncertainty)
+    contour = ax.contourf(grid[0], grid[1], (uncertainty_values - vmin_uncertainty) / (vmax_uncertainty - vmin_uncertainty), cmap=cmap)  # normalize uncertainty
     ax.scatter(testset.tensors[0][testset.tensors[1] == 1][:, 0], testset.tensors[0][testset.tensors[1] == 1][:, 1],
-               color="g", edgecolors="k")
+            color="g", edgecolors="k")
     ax.scatter(testset.tensors[0][testset.tensors[1] == 0][:, 0], testset.tensors[0][testset.tensors[1] == 0][:, 1],
-               color="cornflowerblue", edgecolors="k")
+            color="cornflowerblue", edgecolors="k")
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.set(xlim=(0, l), ylim=(0, l), xlabel="X", ylabel="Y")
-    cbar = plt.colorbar(contour, ax=ax)
+    cbar = plt.colorbar(contour, ax=ax)  # remove vmin and vmax
     cbar.ax.set_ylabel("Standard deviation on simulated transfers")
     plt.title("Uncertainty in Predicted Values")
 
-    out_dir = Path('out/saved_plots')
-    out_dir.mkdir(exist_ok=True, parents=True)
-    plt.savefig(Path(out_dir, 'uncertainty_solution.png'), format='png', dpi=400, bbox_inches='tight')
-
     # Mean values plot
     fig, ax = plt.subplots(figsize=(16, 9))
-    contour = ax.contourf(grid[0], grid[1], mean_values, cmap=cmap, vmin=vmin_mean, vmax=vmax_mean)
+    contour = ax.contourf(grid[0], grid[1], (mean_values - vmin_mean) / (vmax_mean - vmin_mean), cmap=cmap)  # normalize mean
     ax.scatter(testset.tensors[0][testset.tensors[1] == 1][:, 0], testset.tensors[0][testset.tensors[1] == 1][:, 1],
-               color="g", edgecolors="k")
+            color="g", edgecolors="k")
     ax.scatter(testset.tensors[0][testset.tensors[1] == 0][:, 0], testset.tensors[0][testset.tensors[1] == 0][:, 1],
-               color="cornflowerblue", edgecolors="k")
+            color="cornflowerblue", edgecolors="k")
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.set(xlim=(0, l), ylim=(0, l), xlabel="X", ylabel="Y")
     cbar = plt.colorbar(contour, ax=ax)
     cbar.ax.set_ylabel("Mean value on simulated transfers")
     plt.title("Mean values in Predicted Values")
-
+    out_dir = Path('out/saved_plots')
+    out_dir.mkdir(exist_ok=True, parents=True)
     plt.savefig(Path(out_dir, 'mean_solution.png'), format='png', dpi=400, bbox_inches='tight')
-
-    # # Compute average uncertainty
-    # avg_uncertainty = uncertainty_values.mean()
-    # # Compute standard deviation of uncertainty
-    # std_uncertainty = uncertainty_values.std()
-
-    # # Now let's plot histogram of uncertainty
-    # fig, ax = plt.subplots(figsize=(10, 6))
-    # counts, bins, patches = ax.hist(uncertainty_values.flatten(), bins=50, color='blue', alpha=0.7)
-    # ax.set(xlabel='Uncertainty', ylabel='Frequency')
-    # plt.title("Histogram of Uncertainty in Predicted Values")  # Adding a title
-    # plt.grid(True, linestyle='--', alpha=0.6)  # Adding gridlines
-
-    # # Add the metrics to the histogram as well
-    # bin_centers = 0.5 * (bins[:-1] + bins[1:])  # center of each bin
-    # metrics_y_position = bin_centers[-1]
-
-    # ax.text(0.95, 0.95, f'Average uncertainty: {avg_uncertainty:.2f}',
-    #         horizontalalignment='right',
-    #         verticalalignment='top',
-    #         transform=ax.transAxes,
-    #         color='black', fontsize=10)
-
-    # ax.text(0.95, 0.90, f'Standard deviation of uncertainty: {std_uncertainty:.2f}',
-    #         horizontalalignment='right',
-    #         verticalalignment='top',
-    #         transform=ax.transAxes,
-    #         color='black', fontsize=10)
-
-    # plt.savefig(Path(out_dir, 'uncertainty_histogram.png'), format='png', dpi=400, bbox_inches='tight')
-
-    # # Histogram of mean values
-    # fig, ax = plt.subplots(figsize=(10, 6))
-    # counts, bins, patches = ax.hist(mean_values.flatten(), bins=50, color='blue', alpha=0.7)
-    # ax.set(xlabel='Mean Value', ylabel='Frequency')
-    # plt.title("Histogram of Mean Values in Predicted Values")  # Adding a title
-    # plt.grid(True, linestyle='--', alpha=0.6)  # Adding gridlines
-
-    # avg_mean = mean_values.mean()
-    # std_mean = mean_values.std()
-
-    # ax.text(0.95, 0.95, f'Average Mean: {avg_mean:.2f}',
-    #         horizontalalignment='right',
-    #         verticalalignment='top',
-    #         transform=ax.transAxes,
-    #         color='black', fontsize=10)
-
-    # ax.text(0.95, 0.90, f'Standard Deviation of Mean: {std_mean:.2f}',
-    #         horizontalalignment='right',
-    #         verticalalignment='top',
-    #         transform=ax.transAxes,
-    #         color='black', fontsize=10)
-
-    # plt.savefig(Path(out_dir, 'mean_histogram.png'), format='png', dpi=400, bbox_inches='tight')
 
     plt.show()
 
+from matplotlib.lines import Line2D
+from matplotlib.colors import Normalize
+from matplotlib.cm import get_cmap
+
+def plot_combined(all_inputs, network):
+    l = 1  # limit
+    grid = np.mgrid[-l:l:200j, -l:l:200j]
+    grid_2d = grid.reshape(2, -1).T
+    outputs = network.infer(torch.tensor(grid_2d).float(), 1000)
+    network.layers[0].no_variability = True
+    network.layers[1].no_variability = True
+    cmap = "viridis_r"
+    testset = torch.load(settings.test_moon_dataset_location)
+
+    # Uncertainty values
+    uncertainty_values = outputs[1][1].detach().numpy().reshape(200, 200)
+    vmin_uncertainty, vmax_uncertainty = np.min(uncertainty_values), np.max(uncertainty_values)
+
+    # Mean values
+    mean_values = outputs[1][0].detach().numpy().reshape(200, 200)
+    vmin_mean, vmax_mean = np.min(mean_values), np.max(mean_values)
+
+    # Combined plot
+    fig, ax = plt.subplots(figsize=(16, 9))
+    contourf = ax.contourf(grid[0], grid[1], (uncertainty_values - vmin_uncertainty) / (vmax_uncertainty - vmin_uncertainty), cmap=cmap, vmin=0, vmax=1)  # normalize uncertainty
+    norm = Normalize(vmin=vmin_mean, vmax=vmax_mean)
+    contour = ax.contour(grid[0], grid[1], mean_values, levels=20, cmap='jet', linestyles='dashed', norm=norm, alpha=0.7)
+    ax.clabel(contour, inline=True, fontsize=8, fmt='%.1f')
+    green_scatter = ax.scatter(testset.tensors[0][testset.tensors[1] == 1][:, 0], testset.tensors[0][testset.tensors[1] == 1][:, 1],
+                               color="g", edgecolors="k", label='Label 1')  # Added label
+    blue_scatter = ax.scatter(testset.tensors[0][testset.tensors[1] == 0][:, 0], testset.tensors[0][testset.tensors[1] == 0][:, 1],
+                              color="cornflowerblue", edgecolors="k", label='Label 0')  # Added label
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.set(xlim=(0, l), ylim=(0, l), xlabel="X", ylabel="Y")
+    # create custom artists for legend
+    dashed_line = Line2D([0], [0], color='k', lw=1, ls='--', label='Mean values')
+    ax.legend(handles=[green_scatter, blue_scatter, dashed_line], loc='lower right')  # add custom artist to legend
+    cbar = plt.colorbar(contourf, ax=ax)
+    cbar.ax.set_ylabel("Standard deviation on simulated transfers")
+    plt.title("Combined Uncertainty and Mean Predicted Values")
+    out_dir = Path('out/saved_plots')
+    out_dir.mkdir(exist_ok=True, parents=True)
+    plt.savefig(Path(out_dir, 'combined_solution.png'), format='png', dpi=400, bbox_inches='tight')
+
+    plt.show()
+
+from mpl_toolkits.mplot3d import Axes3D
+
+def plot_combined_3d(all_inputs, network):
+    l = 1  # limit
+    grid = np.mgrid[0:l:200j, 0:l:200j]  # Adjusted grid limits
+    grid_2d = grid.reshape(2, -1).T
+    outputs = network.infer(torch.tensor(grid_2d).float(), 1000)
+    network.layers[0].no_variability = True
+    network.layers[1].no_variability = True
+    cmap = "viridis_r"
+    testset = torch.load(settings.test_moon_dataset_location)
+
+    # Uncertainty values
+    uncertainty_values = outputs[1][1].detach().numpy().reshape(200, 200)
+    vmin_uncertainty, vmax_uncertainty = np.min(uncertainty_values), np.max(uncertainty_values)
+
+    # Mean values
+    mean_values = outputs[1][0].detach().numpy().reshape(200, 200)
+    vmin_mean, vmax_mean = np.min(mean_values), np.max(mean_values)
+
+    # Combined 3D plot
+    fig = plt.figure(figsize=(20, 12))  # Increase figure size
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot the surface with color representing uncertainty and height representing mean values
+    surface = ax.plot_surface(grid[0], grid[1], mean_values, facecolors=plt.cm.viridis((uncertainty_values - vmin_uncertainty)/(vmax_uncertainty - vmin_uncertainty)), alpha=0.9)
+    
+    # Plot the test set points
+    ax.scatter(testset.tensors[0][testset.tensors[1] == 1][:, 0], testset.tensors[0][testset.tensors[1] == 1][:, 1], network.infer(testset.tensors[0][testset.tensors[1] == 1].float(), 1000)[1][0].detach().numpy() - 0.05, color="g", edgecolors="k", s=50, alpha=1.0)
+    ax.scatter(testset.tensors[0][testset.tensors[1] == 0][:, 0], testset.tensors[0][testset.tensors[1] == 0][:, 1], network.infer(testset.tensors[0][testset.tensors[1] == 0].float(), 1000)[1][0].detach().numpy() - 0.05, color="cornflowerblue", edgecolors="k", s=50, alpha=1.0)
+    
+    # Add labels, title and colorbar
+    ax.set(xlim=(0, l), ylim=(0, l), xlabel="X", ylabel="Y", zlabel="Mean value", title="3D Plot of Mean and Uncertainty")
+    ax.set_zlim(1, 0)  # Invert the z axis
+    plt.colorbar(surface, ax=ax, shrink=0.5, aspect=5).set_label("Standard deviation on simulated transfers")
+    
+    # Save the figure with higher DPI
+    out_dir = Path('out/saved_plots')
+    out_dir.mkdir(exist_ok=True, parents=True)
+    plt.savefig(Path(out_dir, 'combined_3d_solution.png'), format='png', dpi=600, bbox_inches='tight')  # Increase DPI
+
+    plt.show()

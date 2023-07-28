@@ -60,28 +60,29 @@ def compare_networks(criterion, network_type: int):
     # Load the paths for each of the trained networks
     nn_path = settings.pretrained_address_dict[2]
     hann_path = settings.pretrained_address_dict[1]
-    hann_cpy_path = settings.pretrained_address_dict[1]
+    hann_cpy_path = settings.pretrained_address_dict[3]
     nn = torch.load(str(nn_path))
     hann = torch.load(str(hann_path))
-    hann_cpy = torch.load(str(hann_cpy_path))
+    hann_cpy = torch.load(str(hann_path))
 
     # Load the test dataset
     testset = torch.load(settings.test_moon_dataset_location)
     with torch.no_grad():
         # Copy the weights and bias of the first fully-connected layer
-        hann.fc1.weight = nn.fc1.weight
-        hann.fc1.bias = nn.fc1.bias
+        hann_cpy.fc1.weight = nn.fc1.weight
+        hann_cpy.fc1.bias = nn.fc1.bias
         # Copy the weights and bias of the second fully-connected layer
-        hann.fc2.weight = nn.fc2.weight
-        hann.fc2.bias = nn.fc2.bias
-    # Test the copied hardware-aware neural network
-    if settings.choice == 1:
-        network = network_dict[settings.choice](2, 1, elbo=settings.elbo)
-    else:
-        network = network_dict[settings.choice](2, 1)
-    network.to(torch_device)
-    acc, _ = test_standard(network, testset, torch_device, criterion, test_name='', network_type=network_type)
+        hann_cpy.fc2.weight = nn.fc2.weight
+        hann_cpy.fc2.bias = nn.fc2.bias
+   
+    # Test the original HANN
+    network = hann.to(torch_device)  
+    acc, _ = test_standard(network, testset, torch_device, criterion, test_name='', network_type=1)
+    print(f"Accuracy of the hardware-aware network: {acc}")
 
+    # Test the modified HANN (which is now a NN)
+    network = hann_cpy.to(torch_device)
+    acc, _ = test_standard(network, testset, torch_device, criterion, test_name='', network_type=1)
     print(f"Accuracy of the modified hardware-aware network: {acc}")
 
 if __name__ == '__main__':
